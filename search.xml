@@ -1,8 +1,113 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>Kotlin标准库函数let，apply，with，run，also</title>
+    <url>/2020/11/02/Kotlin%20Basic%20Function/</url>
+    <content><![CDATA[<h3 id="简述"><a href="#简述" class="headerlink" title="简述"></a>简述</h3><p>　　相比较于Java，在Kotlin中提供了许多的内置函数来帮助开发者写出更优雅的代码，同样的逻辑，在Kotlin中可以有更好的表达，当然你也可以不使用这些函数。</p>
+<p>　　要弄明白这几个函数的具体使用，我们只需要从三个角度：是不是扩展函数？、返回值是什么？、this指的是谁？。只要弄清楚了这三点就理解了let,apply等函数。代码使用了lambda表达式，如果不清楚lambda表达式和扩展函数的可以参考下面的链接。</p>
+<blockquote>
+<p><a href="https://kaixue.io/kotlin-lambda/">Kotlin 的 Lambda 表达式，大多数人学得连皮毛都不算</a></p>
+</blockquote>
+<blockquote>
+<p><a href="https://www.kotlincn.net/docs/reference/extensions.html">Kotlin中文官方文档-扩展函数</a></p>
+</blockquote>
+<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><p>　　我们一开始就说了这些函数是为了让代码看起来更加的简洁，所以这些函数没有实现任何功能，即使不会也不会影响编码。但是别人用了你看不懂这就不好吧。</p>
+<p>　　在学习使用过程中我们带着上述的三个问题。因为这几个函数有很多相似性，所以我重点介绍<code>let</code>函数和<code>apply</code>函数。当我们能够清晰的使用者两个函数时，其他函数也就不在话下。</p>
+<h4 id="let的使用"><a href="#let的使用" class="headerlink" title="let的使用"></a>let的使用</h4><p>　　<code>let()</code>的定义是这样的，默认当前这个对象作为闭包(代码块)的it参数，返回值是函数里面最后一行。知道定义后看看let函数是去替换怎样的一种写法呢。</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> activityMainTopTitle = findViewById&lt;TextView&gt;(R.id.activityMainTopTitle)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 常规写法</span></span><br><span class="line">activityMainTopTitle.text = <span class="string">&quot;title&quot;</span></span><br><span class="line"><span class="comment">// ...更多的一些设置</span></span><br><span class="line">activityMainTopTitle.setBackgroundColor(Color.RED)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用let的写法</span></span><br><span class="line">activityMainTopTitle.let &#123;</span><br><span class="line">    it.text = <span class="string">&quot;title&quot;</span></span><br><span class="line">    <span class="comment">// ...更多的一些设置</span></span><br><span class="line">    it.setBackgroundColor(Color.RED)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我个人一般不会这样去使用let，这样反而让代码变得不那么简洁（个人感觉，但是可读性变高了，可读性变高了不也是一种简洁么?）。多数情况下使用<code>?.let</code>的形式。</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList2: MutableList&lt;<span class="built_in">Int</span>&gt;? = mutableListOf&lt;<span class="built_in">Int</span>&gt;()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 常规写法</span></span><br><span class="line"><span class="keyword">if</span> (mutableList2 != <span class="literal">null</span>) &#123;</span><br><span class="line">    mutableList2.add(<span class="number">1</span>)</span><br><span class="line">    mutableList2.add(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用let的写法。</span></span><br><span class="line"><span class="comment">// 表示mutableList2不为null的条件下，才会去执行let函数体</span></span><br><span class="line">mutableList2?.let &#123;</span><br><span class="line">    it.add(<span class="number">1</span>)</span><br><span class="line">    it.add(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>啊这，那我要是要处理为空的情况呢，是不是就不能使用let了？ 有得，有得。如果要实现<code>if-else</code>结构，你可以这样：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line">mutableList2?.let &#123;</span><br><span class="line">    it.add(<span class="number">1</span>)</span><br><span class="line">    it.add(<span class="number">2</span>)</span><br><span class="line">&#125; ?: let &#123;</span><br><span class="line">    <span class="comment">// mutableList2为空又怎么撸。</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>值得注意的一点就是<code>?.let</code>只能去实现<code>if-else</code>中非空判断的逻辑，其他情况还是做不到呢。最后我们看一下let函数的声明：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// let函数声明（去掉契约contract部分，对实际实现无影响，方便理解。下同）</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">let</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block(<span class="keyword">this</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>结合上面的代码和函数声明是不是对let的认识又清晰了很多呢，为了更好的回答上面的三个问题。我截取了Android Studio中的代码帮助大家理解：</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/11/02/lzmDuJfXRKG8w6r.png" alt="KotlinNormal_let_1"></p>
+<p>　　总结一下：let函数是一个扩展函数，其返回值是代码块最后一行。若最后一行没有返回值则返回值为<code>Unit</code>。在代码块中的this指代的是当前类对象。</p>
+<h4 id="apply的使用"><a href="#apply的使用" class="headerlink" title="apply的使用"></a>apply的使用</h4><p>　　看完了let，现在来看看apply函数的使用：apply函数可以在函数内调用该对象的任意方法，并返回该对象，依然先看看常规写法和等价写法。</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList = mutableListOf&lt;<span class="built_in">Int</span>&gt;()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 常规写法</span></span><br><span class="line">mutableList.add(<span class="number">1</span>)</span><br><span class="line">mutableList.add(<span class="number">2</span>)</span><br><span class="line">mutableList.remove(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用apply写法</span></span><br><span class="line">mutableList.apply &#123;</span><br><span class="line">    add(<span class="number">1</span>)</span><br><span class="line">    add(<span class="number">2</span>)</span><br><span class="line">    remove(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>let函数是it作为参数传进来，apply怎么变成了this，而且直接调用了<code>add()</code>方法？别急，先看看在Android Studio中是什么样的。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/11/02/8BindhsRYIDPqlE.png" alt="KotlinNormal_apply_1"></p>
+<p>对比let函数，可以发现apply传入的参数名由<code>it</code>变成了<code>this</code>(但是他们指代的对象都是<code>mutableList</code>)，并且在函数内部this指代的对象也从<strong>类对象</strong>变成了<strong>当前对象</strong>。首先，我们知道<code>this</code>是具有特殊意义的。其次，我们也知道通过<code>this.method()</code>方式调用方法是可以省略<code>this</code>的，所以这也就是apply函数定义中的<strong>可以在函数内调用该对象的任意方法</strong>（私有方法还是不行哦）。最后来看一下apply函数和let函数的声明：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// apply函数的声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> T.<span class="title">apply</span><span class="params">(block: <span class="type">T</span>.() -&gt; <span class="type">Unit</span>)</span></span>: T &#123;</span><br><span class="line">    block()</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// let函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">let</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block(<span class="keyword">this</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>啊？，这<code>T.()</code>是个什么啊？我们只见过<code>block: (T) -&gt; Unit</code>和<code>block: () -&gt; Unit</code>。也没有见过<code>block: T.() -&gt; Unit</code>啊！T不一个类么？怎么可以直接<code>T.()</code>呢？</p>
+<p>　　我们看看文档的描述：</p>
+<blockquote>
+<p>　　这个函数接受一个名为<code>init</code>的参数，该参数本身就是一个函数。该函数的类型就是<code>T.() -&gt; Unit</code>这意味着我们需要向函数传递一个T类型的实例，并且我们可以在函数内部调用该实例的成员。并且可以通过this关键字访问。</p>
+</blockquote>
+<p>如果不懂也没有关系，我们只要记住<code>T.() -&gt; Unit</code>这是一个类型，并且函数体内部使用this关键字访问。这就是造成let和apply函数中传入的参数一个是it，一个是this的原因。我们就不详细讲解这个了。感兴趣的可以自行谷歌。</p>
+<p>　　总结一下：apply函数是一个扩展函数。从截图中<code>returnResult</code>的类型也可以很明显看出来：其返回值就是当前对象。在代码块中的this指代的是调用apply函数的实例对象。</p>
+<h4 id="with的使用"><a href="#with的使用" class="headerlink" title="with的使用"></a>with的使用</h4><p>　　从使用上来看with函数更像是let + apply函数。但是因为with函数是唯一的一个非扩展函数。所以在写法上和其他函数还是有一点差异。我们还是先看看实际的代码：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList: MutableList&lt;<span class="built_in">Int</span>&gt; = mutableListOf()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 正常写法</span></span><br><span class="line">mutableList.add(<span class="number">1</span>)</span><br><span class="line">mutableList.add(<span class="number">2</span>)</span><br><span class="line"><span class="keyword">val</span> returnResult = <span class="string">&quot;3&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用with写法</span></span><br><span class="line"><span class="keyword">val</span> returnResult = with(mutableList) &#123;</span><br><span class="line">    add(<span class="number">1</span>)</span><br><span class="line">    add(<span class="number">2</span>)</span><br><span class="line">    <span class="string">&quot;3&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们都知道函数都有<code>object?.method()</code>的形式去调用，表示object不为null时才去调用方法。with怎么去实现<code>?.</code>的调用形式。可以参考如下形式，这是我个人写的比较多的一种形式：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList2: MutableList&lt;<span class="built_in">Int</span>&gt;? = mutableListOf()</span><br><span class="line">with(mutableList2 ?: <span class="keyword">return</span>) &#123;</span><br><span class="line">    add(<span class="number">1</span>)</span><br><span class="line">    add(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>但是需要注意的是：这行with语句应该放在最后，即<strong>在with之后不会有代码需要执行</strong>。因为当<code>mutableList2</code>为null时会执行return结束整个方法的执行。如果后面还有代码需要执行的话还是老老实实的做非空判断吧。</p>
+<p>　　总结一下：with = let + apply。with是唯一的一个非扩展函数。返回值和let一样是代码块最后一行。this指代的对象和apply一样是当前对象。</p>
+<h4 id="run的使用"><a href="#run的使用" class="headerlink" title="run的使用"></a>run的使用</h4><p>　　run函数的定义和apply函数的定义很像，区别在于apply函数的返回值是当前对象，而run函数返回值是代码块最后一行。</p>
+<h4 id="also的使用"><a href="#also的使用" class="headerlink" title="also的使用"></a>also的使用</h4><p>　　also函数的定义和let函数定义很像，区别在于let函数的返回值是代码块最后一行，而also的返回值是当前对象。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>　　没了？没了。真的没了！其实只要理解清楚了let函数和apply函数，基本就全部都清楚了。从其函数声明上就可以看出他们有许多相似之处。</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// let函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">let</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block(<span class="keyword">this</span>)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// apply函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> T.<span class="title">apply</span><span class="params">(block: <span class="type">T</span>.() -&gt; <span class="type">Unit</span>)</span></span>: T &#123;</span><br><span class="line">    block()</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// with函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> <span class="title">with</span><span class="params">(receiver: <span class="type">T</span>, block: <span class="type">T</span>.() -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> receiver.block()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// run函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">run</span><span class="params">(block: <span class="type">T</span>.() -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// also函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> T.<span class="title">also</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">Unit</span>)</span></span>: T &#123;</span><br><span class="line">    block(<span class="keyword">this</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下面给张表格清晰的对比它们之间的区别：</p>
+<table>
+<thead>
+<tr>
+<th align="center">函数名</th>
+<th align="center">是否为扩展函数</th>
+<th align="center">返回值</th>
+<th align="center">this指代的对象</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">let</td>
+<td align="center">true</td>
+<td align="center">代码块最后一行</td>
+<td align="center">当前类对象</td>
+</tr>
+<tr>
+<td align="center">apply</td>
+<td align="center">true</td>
+<td align="center">当前对象</td>
+<td align="center">调用apply的对象</td>
+</tr>
+<tr>
+<td align="center">with</td>
+<td align="center">false</td>
+<td align="center">代码块最后一行</td>
+<td align="center">传入with的对象</td>
+</tr>
+<tr>
+<td align="center">run</td>
+<td align="center">true</td>
+<td align="center">代码块最后一行</td>
+<td align="center">调用run的对象</td>
+</tr>
+<tr>
+<td align="center">also</td>
+<td align="center">true</td>
+<td align="center">当前对象</td>
+<td align="center">当前类对象</td>
+</tr>
+</tbody></table>
+]]></content>
+      <categories>
+        <category>Kotlin</category>
+      </categories>
+      <tags>
+        <tag>Kotlin</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Kotlin中的操作符和部分关键字</title>
-    <url>/2020/09/15/KotlinOperator/</url>
+    <url>/2021/01/05/KotlinOperator/</url>
     <content><![CDATA[<h3 id="操作符-运算符-重载"><a href="#操作符-运算符-重载" class="headerlink" title="操作符(运算符)重载"></a>操作符(运算符)重载</h3><h4 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h4><blockquote>
 <p>操作符重载就是对预定义操作符赋予他们新的含义。重载的修饰符是operator</p>
 </blockquote>
@@ -115,111 +220,6 @@
       <tags>
         <tag>关键字</tag>
         <tag>操作符</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Kotlin标准库函数let，apply，with，run，also</title>
-    <url>/2020/11/02/Kotlin%20Basic%20Function/</url>
-    <content><![CDATA[<h3 id="简述"><a href="#简述" class="headerlink" title="简述"></a>简述</h3><p>　　相比较于Java，在Kotlin中提供了许多的内置函数来帮助开发者写出更优雅的代码，同样的逻辑，在Kotlin中可以有更好的表达，当然你也可以不使用这些函数。</p>
-<p>　　要弄明白这几个函数的具体使用，我们只需要从三个角度：是不是扩展函数？、返回值是什么？、this指的是谁？。只要弄清楚了这三点就理解了let,apply等函数。代码使用了lambda表达式，如果不清楚lambda表达式和扩展函数的可以参考下面的链接。</p>
-<blockquote>
-<p><a href="https://kaixue.io/kotlin-lambda/">Kotlin 的 Lambda 表达式，大多数人学得连皮毛都不算</a></p>
-</blockquote>
-<blockquote>
-<p><a href="https://www.kotlincn.net/docs/reference/extensions.html">Kotlin中文官方文档-扩展函数</a></p>
-</blockquote>
-<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><p>　　我们一开始就说了这些函数是为了让代码看起来更加的简洁，所以这些函数没有实现任何功能，即使不会也不会影响编码。但是别人用了你看不懂这就不好吧。</p>
-<p>　　在学习使用过程中我们带着上述的三个问题。因为这几个函数有很多相似性，所以我重点介绍<code>let</code>函数和<code>apply</code>函数。当我们能够清晰的使用者两个函数时，其他函数也就不在话下。</p>
-<h4 id="let的使用"><a href="#let的使用" class="headerlink" title="let的使用"></a>let的使用</h4><p>　　<code>let()</code>的定义是这样的，默认当前这个对象作为闭包(代码块)的it参数，返回值是函数里面最后一行。知道定义后看看let函数是去替换怎样的一种写法呢。</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> activityMainTopTitle = findViewById&lt;TextView&gt;(R.id.activityMainTopTitle)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 常规写法</span></span><br><span class="line">activityMainTopTitle.text = <span class="string">&quot;title&quot;</span></span><br><span class="line"><span class="comment">// ...更多的一些设置</span></span><br><span class="line">activityMainTopTitle.setBackgroundColor(Color.RED)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用let的写法</span></span><br><span class="line">activityMainTopTitle.let &#123;</span><br><span class="line">    it.text = <span class="string">&quot;title&quot;</span></span><br><span class="line">    <span class="comment">// ...更多的一些设置</span></span><br><span class="line">    it.setBackgroundColor(Color.RED)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>我个人一般不会这样去使用let，这样反而让代码变得不那么简洁（个人感觉，但是可读性变高了，可读性变高了不也是一种简洁么?）。多数情况下使用<code>?.let</code>的形式。</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList2: MutableList&lt;<span class="built_in">Int</span>&gt;? = mutableListOf&lt;<span class="built_in">Int</span>&gt;()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 常规写法</span></span><br><span class="line"><span class="keyword">if</span> (mutableList2 != <span class="literal">null</span>) &#123;</span><br><span class="line">    mutableList2.add(<span class="number">1</span>)</span><br><span class="line">    mutableList2.add(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用let的写法。</span></span><br><span class="line"><span class="comment">// 表示mutableList2不为null的条件下，才会去执行let函数体</span></span><br><span class="line">mutableList2?.let &#123;</span><br><span class="line">    it.add(<span class="number">1</span>)</span><br><span class="line">    it.add(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>啊这，那我要是要处理为空的情况呢，是不是就不能使用let了？ 有得，有得。如果要实现<code>if-else</code>结构，你可以这样：</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line">mutableList2?.let &#123;</span><br><span class="line">    it.add(<span class="number">1</span>)</span><br><span class="line">    it.add(<span class="number">2</span>)</span><br><span class="line">&#125; ?: let &#123;</span><br><span class="line">    <span class="comment">// mutableList2为空又怎么撸。</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>值得注意的一点就是<code>?.let</code>只能去实现<code>if-else</code>中非空判断的逻辑，其他情况还是做不到呢。最后我们看一下let函数的声明：</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// let函数声明（去掉契约contract部分，对实际实现无影响，方便理解。下同）</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">let</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block(<span class="keyword">this</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>结合上面的代码和函数声明是不是对let的认识又清晰了很多呢，为了更好的回答上面的三个问题。我截取了Android Studio中的代码帮助大家理解：</p>
-<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/11/02/lzmDuJfXRKG8w6r.png" alt="KotlinNormal_let_1"></p>
-<p>　　总结一下：let函数是一个扩展函数，其返回值是代码块最后一行。若最后一行没有返回值则返回值为<code>Unit</code>。在代码块中的this指代的是当前类对象。</p>
-<h4 id="apply的使用"><a href="#apply的使用" class="headerlink" title="apply的使用"></a>apply的使用</h4><p>　　看完了let，现在来看看apply函数的使用：apply函数可以在函数内调用该对象的任意方法，并返回该对象，依然先看看常规写法和等价写法。</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList = mutableListOf&lt;<span class="built_in">Int</span>&gt;()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 常规写法</span></span><br><span class="line">mutableList.add(<span class="number">1</span>)</span><br><span class="line">mutableList.add(<span class="number">2</span>)</span><br><span class="line">mutableList.remove(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用apply写法</span></span><br><span class="line">mutableList.apply &#123;</span><br><span class="line">    add(<span class="number">1</span>)</span><br><span class="line">    add(<span class="number">2</span>)</span><br><span class="line">    remove(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>let函数是it作为参数传进来，apply怎么变成了this，而且直接调用了<code>add()</code>方法？别急，先看看在Android Studio中是什么样的。</p>
-<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/11/02/8BindhsRYIDPqlE.png" alt="KotlinNormal_apply_1"></p>
-<p>对比let函数，可以发现apply传入的参数名由<code>it</code>变成了<code>this</code>(但是他们指代的对象都是<code>mutableList</code>)，并且在函数内部this指代的对象也从<strong>类对象</strong>变成了<strong>当前对象</strong>。首先，我们知道<code>this</code>是具有特殊意义的。其次，我们也知道通过<code>this.method()</code>方式调用方法是可以省略<code>this</code>的，所以这也就是apply函数定义中的<strong>可以在函数内调用该对象的任意方法</strong>（私有方法还是不行哦）。最后来看一下apply函数和let函数的声明：</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// apply函数的声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> T.<span class="title">apply</span><span class="params">(block: <span class="type">T</span>.() -&gt; <span class="type">Unit</span>)</span></span>: T &#123;</span><br><span class="line">    block()</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// let函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">let</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block(<span class="keyword">this</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>啊？，这<code>T.()</code>是个什么啊？我们只见过<code>block: (T) -&gt; Unit</code>和<code>block: () -&gt; Unit</code>。也没有见过<code>block: T.() -&gt; Unit</code>啊！T不一个类么？怎么可以直接<code>T.()</code>呢？</p>
-<p>　　我们看看文档的描述：</p>
-<blockquote>
-<p>　　这个函数接受一个名为<code>init</code>的参数，该参数本身就是一个函数。该函数的类型就是<code>T.() -&gt; Unit</code>这意味着我们需要向函数传递一个T类型的实例，并且我们可以在函数内部调用该实例的成员。并且可以通过this关键字访问。</p>
-</blockquote>
-<p>如果不懂也没有关系，我们只要记住<code>T.() -&gt; Unit</code>这是一个类型，并且函数体内部使用this关键字访问。这就是造成let和apply函数中传入的参数一个是it，一个是this的原因。我们就不详细讲解这个了。感兴趣的可以自行谷歌。</p>
-<p>　　总结一下：apply函数是一个扩展函数。从截图中<code>returnResult</code>的类型也可以很明显看出来：其返回值就是当前对象。在代码块中的this指代的是调用apply函数的实例对象。</p>
-<h4 id="with的使用"><a href="#with的使用" class="headerlink" title="with的使用"></a>with的使用</h4><p>　　从使用上来看with函数更像是let + apply函数。但是因为with函数是唯一的一个非扩展函数。所以在写法上和其他函数还是有一点差异。我们还是先看看实际的代码：</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList: MutableList&lt;<span class="built_in">Int</span>&gt; = mutableListOf()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 正常写法</span></span><br><span class="line">mutableList.add(<span class="number">1</span>)</span><br><span class="line">mutableList.add(<span class="number">2</span>)</span><br><span class="line"><span class="keyword">val</span> returnResult = <span class="string">&quot;3&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用with写法</span></span><br><span class="line"><span class="keyword">val</span> returnResult = with(mutableList) &#123;</span><br><span class="line">    add(<span class="number">1</span>)</span><br><span class="line">    add(<span class="number">2</span>)</span><br><span class="line">    <span class="string">&quot;3&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>我们都知道函数都有<code>object?.method()</code>的形式去调用，表示object不为null时才去调用方法。with怎么去实现<code>?.</code>的调用形式。可以参考如下形式，这是我个人写的比较多的一种形式：</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList2: MutableList&lt;<span class="built_in">Int</span>&gt;? = mutableListOf()</span><br><span class="line">with(mutableList2 ?: <span class="keyword">return</span>) &#123;</span><br><span class="line">    add(<span class="number">1</span>)</span><br><span class="line">    add(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>但是需要注意的是：这行with语句应该放在最后，即<strong>在with之后不会有代码需要执行</strong>。因为当<code>mutableList2</code>为null时会执行return结束整个方法的执行。如果后面还有代码需要执行的话还是老老实实的做非空判断吧。</p>
-<p>　　总结一下：with = let + apply。with是唯一的一个非扩展函数。返回值和let一样是代码块最后一行。this指代的对象和apply一样是当前对象。</p>
-<h4 id="run的使用"><a href="#run的使用" class="headerlink" title="run的使用"></a>run的使用</h4><p>　　run函数的定义和apply函数的定义很像，区别在于apply函数的返回值是当前对象，而run函数返回值是代码块最后一行。</p>
-<h4 id="also的使用"><a href="#also的使用" class="headerlink" title="also的使用"></a>also的使用</h4><p>　　also函数的定义和let函数定义很像，区别在于let函数的返回值是代码块最后一行，而also的返回值是当前对象。</p>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>　　没了？没了。真的没了！其实只要理解清楚了let函数和apply函数，基本就全部都清楚了。从其函数声明上就可以看出他们有许多相似之处。</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// let函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">let</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block(<span class="keyword">this</span>)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// apply函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> T.<span class="title">apply</span><span class="params">(block: <span class="type">T</span>.() -&gt; <span class="type">Unit</span>)</span></span>: T &#123;</span><br><span class="line">    block()</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// with函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> <span class="title">with</span><span class="params">(receiver: <span class="type">T</span>, block: <span class="type">T</span>.() -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> receiver.block()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// run函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">run</span><span class="params">(block: <span class="type">T</span>.() -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// also函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> T.<span class="title">also</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">Unit</span>)</span></span>: T &#123;</span><br><span class="line">    block(<span class="keyword">this</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>下面给张表格清晰的对比它们之间的区别：</p>
-<table>
-<thead>
-<tr>
-<th align="center">函数名</th>
-<th align="center">是否为扩展函数</th>
-<th align="center">返回值</th>
-<th align="center">this指代的对象</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">let</td>
-<td align="center">true</td>
-<td align="center">代码块最后一行</td>
-<td align="center">当前类对象</td>
-</tr>
-<tr>
-<td align="center">apply</td>
-<td align="center">true</td>
-<td align="center">当前对象</td>
-<td align="center">调用apply的对象</td>
-</tr>
-<tr>
-<td align="center">with</td>
-<td align="center">false</td>
-<td align="center">代码块最后一行</td>
-<td align="center">传入with的对象</td>
-</tr>
-<tr>
-<td align="center">run</td>
-<td align="center">true</td>
-<td align="center">代码块最后一行</td>
-<td align="center">调用run的对象</td>
-</tr>
-<tr>
-<td align="center">also</td>
-<td align="center">true</td>
-<td align="center">当前对象</td>
-<td align="center">当前类对象</td>
-</tr>
-</tbody></table>
-]]></content>
-      <categories>
-        <category>Kotlin</category>
-      </categories>
-      <tags>
-        <tag>Kotlin</tag>
       </tags>
   </entry>
   <entry>
