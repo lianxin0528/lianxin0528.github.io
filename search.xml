@@ -323,4 +323,69 @@
         <tag>java</tag>
       </tags>
   </entry>
+  <entry>
+    <title>基于MvRx+Epoxy的MvRx的MVVM</title>
+    <url>/2020/09/15/MVVM/</url>
+    <content><![CDATA[<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>　　MVVM是Model-View-ViewModel的简写。是一个推出来很久并且已经非常成熟的框架。相比较于与MVC好处很多就不赘述了。重点在于当前使用的MVP框架和MVVM做比较。首先看一哈MVVM的大体结构。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/03/08/Fhan2SiD81ypLWU.jpg" alt="mvrx_mvvm">)</p>
+<p>其中每个模块都有自己明确的分工，各司其职。</p>
+<ul>
+<li><strong>Activity</strong></li>
+</ul>
+<p>　　activity不在意数据的来源，只负责将ViewModel中的数据绑定到UI。是一个管理者，简言之就是activity的代码几乎都是和UI相关的。</p>
+<ul>
+<li><strong>ViewModel</strong></li>
+</ul>
+<p>　　ViewModel不在意界面如何展示，只负责处理数据。并将处理好的数据放到数据集合中，并且通知activity数据已经处理完毕。从这点来说，一个ViewModel更像一个工人，用来处理某一种或者某一类数据。对应在我们的项目中就是一个小模块的数据（或者说是某个接口数据）。当前我们的MVP框架对于多个Activity调用同一个接口需要重复去完成这项工作。但是对于ViewModel来说，它可以提供给多个activity使用，因为它只负责处理数据。让一个Activity依赖多个ViewModel。来共同完成界面的显示工作。</p>
+<ul>
+<li><strong>Repostory</strong></li>
+</ul>
+<p>　　repostory就是仓库的意思。这是一个数据仓库。ViewModel需要处理的原始数据均从Repostory中获取，repostory主要负责协调本地数据和远端数据。</p>
+<h3 id="技术"><a href="#技术" class="headerlink" title="技术"></a>技术</h3><p>　　我在搭建框架的时候看了许多东西，从中选择，有些好的我也是现学的。不一定理解到位了，如有错误还请指正。</p>
+<h4 id="Kodein"><a href="#Kodein" class="headerlink" title="Kodein"></a>Kodein</h4><blockquote>
+<p><a href="https://github.com/Kodein-Framework/Kodein-DI">依赖注入框架Kedein连接</a></p>
+</blockquote>
+<p>　　为什么选择kodein是因为它注入方便。使用也方便。我们看实际代码</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 注入</span></span><br><span class="line"><span class="keyword">const</span> <span class="keyword">val</span> TAG_KODEIN_MODULE_REPOSITORY_OAUTH = <span class="string">&quot;oauthRepositoryModel&quot;</span></span><br><span class="line"><span class="keyword">val</span> oauthRepositoryModel = Kodein.Module(TAG_KODEIN_MODULE_REPOSITORY_OAUTH) &#123;</span><br><span class="line">    bind&lt;OauthRemoteDataSource&gt;() with singleton &#123; OauthRemoteDataSource() &#125;</span><br><span class="line">    bind&lt;OauthRepository&gt;() with singleton &#123; </span><br><span class="line">        OauthRepository(instance(), instance())</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 使用</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">val</span> oauthRepo <span class="keyword">by</span> BaseApplication.INSTANCE.kodein.instance&lt;OauthRepository&gt;()</span><br></pre></td></tr></table></figure>
+
+<p>这代码看着相对于Dagger变复杂了。其实并没有变得复杂。数据仓库是我们很多地方都需要调用的。kodein的好处就在于任何地方都可以注入，任何地方都可以得到实例化对象。除了singleton之外还有别的注入方式。</p>
+<ul>
+<li><p>Provider binding : 每次加载都生成新的实例，无参， 传入<code>() -&gt; T</code></p>
+</li>
+<li><p>Singleton binding : 单例 传入 <code>() → T</code></p>
+</li>
+<li><p>Eager singleton : 单例 创建了 Kodein 实例后立即实例化 传入 <code>() -&gt; T</code></p>
+</li>
+<li><p>Factory binding : 每次加载都生成新的实例，需要参数，传入<code>(A) -&gt; T</code></p>
+</li>
+<li><p>Multiton binding : 有参的单例，同样参数同样实例，传入 <code>(A) -&gt; T</code></p>
+</li>
+<li><p>Tagged bindings : 通过 tag 来区分同类型不同的实例</p>
+</li>
+</ul>
+<h4 id="哆啦A梦"><a href="#哆啦A梦" class="headerlink" title="哆啦A梦"></a>哆啦A梦</h4><blockquote>
+<p><a href="https://www.dokit.cn/">android/Ios调试工具</a></p>
+</blockquote>
+<p>　　这个工具我是偶然间看到了，真的强推，很好用的一个工具。这其中提供的一些我觉得很强大的功能，着重说一哈里面有一个流量的工具，可以查看手机的流量情况和发出的每一个请求，并且能够查看请求的请求体和响应体。Crash和log也都是比较好的工具。DBView（虽然我们项目没有使用，但是也是一个强大的功能）</p>
+<p>　　因为在项目中没有去做网络日志，所以使用多啦A梦工具，电脑端可以配合Charles来使用更好。</p>
+<h3 id="utilcode"><a href="#utilcode" class="headerlink" title="utilcode"></a>utilcode</h3><blockquote>
+<p><a href="https://blog.csdn.net/yhd007/article/details/88015556">AndroidUntilCode部分使用，有些他也没有介绍到</a></p>
+</blockquote>
+<p>　　这是一个工具类集合，基本上你想的到的想不到的工具类都能在这里找到。</p>
+<h4 id="Epoxy-MvRx"><a href="#Epoxy-MvRx" class="headerlink" title="Epoxy+MvRx"></a>Epoxy+MvRx</h4><blockquote>
+<p><a href="https://github.com/airbnb/epoxy">Epoxy</a></p>
+<p><a href="https://github.com/airbnb/mavericks">MvRx，过完年这个家伙改名了，现在叫Mavericks</a></p>
+</blockquote>
+<p>　　最后讲到我们的主角，东西很多，我们结合代码讲。主要还是这几个方面。</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 创建item</span></span><br><span class="line"><span class="comment">// 关联滑动事件</span></span><br><span class="line"><span class="comment">// 网络请求的几种方式</span></span><br><span class="line"><span class="comment">// 值的订阅</span></span><br><span class="line"><span class="comment">// 记录建议和改进的地方。</span></span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>Android</category>
+      </categories>
+      <tags>
+        <tag>框架</tag>
+        <tag>MVVM</tag>
+      </tags>
+  </entry>
 </search>
