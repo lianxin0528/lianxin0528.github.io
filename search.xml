@@ -1,111 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Kotlin标准库函数let，apply，with，run，also</title>
-    <url>/2020/11/02/Kotlin%20Basic%20Function/</url>
-    <content><![CDATA[<h3 id="简述"><a href="#简述" class="headerlink" title="简述"></a>简述</h3><p>　　相比较于Java，在Kotlin中提供了许多的内置函数来帮助开发者写出更优雅的代码，同样的逻辑，在Kotlin中可以有更好的表达，当然你也可以不使用这些函数。</p>
-<p>　　要弄明白这几个函数的具体使用，我们只需要从三个角度：是不是扩展函数？、返回值是什么？、this指的是谁？。只要弄清楚了这三点就理解了let,apply等函数。代码使用了lambda表达式，如果不清楚lambda表达式和扩展函数的可以参考下面的链接。</p>
-<blockquote>
-<p><a href="https://kaixue.io/kotlin-lambda/">Kotlin 的 Lambda 表达式，大多数人学得连皮毛都不算</a></p>
-</blockquote>
-<blockquote>
-<p><a href="https://www.kotlincn.net/docs/reference/extensions.html">Kotlin中文官方文档-扩展函数</a></p>
-</blockquote>
-<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><p>　　我们一开始就说了这些函数是为了让代码看起来更加的简洁，所以这些函数没有实现任何功能，即使不会也不会影响编码。但是别人用了你看不懂这就不好吧。</p>
-<p>　　在学习使用过程中我们带着上述的三个问题。因为这几个函数有很多相似性，所以我重点介绍<code>let</code>函数和<code>apply</code>函数。当我们能够清晰的使用者两个函数时，其他函数也就不在话下。</p>
-<h4 id="let的使用"><a href="#let的使用" class="headerlink" title="let的使用"></a>let的使用</h4><p>　　<code>let()</code>的定义是这样的，默认当前这个对象作为闭包(代码块)的it参数，返回值是函数里面最后一行。知道定义后看看let函数是去替换怎样的一种写法呢。</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> activityMainTopTitle = findViewById&lt;TextView&gt;(R.id.activityMainTopTitle)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 常规写法</span></span><br><span class="line">activityMainTopTitle.text = <span class="string">&quot;title&quot;</span></span><br><span class="line"><span class="comment">// ...更多的一些设置</span></span><br><span class="line">activityMainTopTitle.setBackgroundColor(Color.RED)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用let的写法</span></span><br><span class="line">activityMainTopTitle.let &#123;</span><br><span class="line">    it.text = <span class="string">&quot;title&quot;</span></span><br><span class="line">    <span class="comment">// ...更多的一些设置</span></span><br><span class="line">    it.setBackgroundColor(Color.RED)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>我个人一般不会这样去使用let，这样反而让代码变得不那么简洁（个人感觉，但是可读性变高了，可读性变高了不也是一种简洁么?）。多数情况下使用<code>?.let</code>的形式。</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList2: MutableList&lt;<span class="built_in">Int</span>&gt;? = mutableListOf&lt;<span class="built_in">Int</span>&gt;()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 常规写法</span></span><br><span class="line"><span class="keyword">if</span> (mutableList2 != <span class="literal">null</span>) &#123;</span><br><span class="line">    mutableList2.add(<span class="number">1</span>)</span><br><span class="line">    mutableList2.add(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用let的写法。</span></span><br><span class="line"><span class="comment">// 表示mutableList2不为null的条件下，才会去执行let函数体</span></span><br><span class="line">mutableList2?.let &#123;</span><br><span class="line">    it.add(<span class="number">1</span>)</span><br><span class="line">    it.add(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>啊这，那我要是要处理为空的情况呢，是不是就不能使用let了？ 有得，有得。如果要实现<code>if-else</code>结构，你可以这样：</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line">mutableList2?.let &#123;</span><br><span class="line">    it.add(<span class="number">1</span>)</span><br><span class="line">    it.add(<span class="number">2</span>)</span><br><span class="line">&#125; ?: let &#123;</span><br><span class="line">    <span class="comment">// mutableList2为空又怎么撸。</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>值得注意的一点就是<code>?.let</code>只能去实现<code>if-else</code>中非空判断的逻辑，其他情况还是做不到呢。最后我们看一下let函数的声明：</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// let函数声明（去掉契约contract部分，对实际实现无影响，方便理解。下同）</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">let</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block(<span class="keyword">this</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>结合上面的代码和函数声明是不是对let的认识又清晰了很多呢，为了更好的回答上面的三个问题。我截取了Android Studio中的代码帮助大家理解：</p>
-<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/11/02/lzmDuJfXRKG8w6r.png" alt="KotlinNormal_let_1"></p>
-<p>　　总结一下：let函数是一个扩展函数，其返回值是代码块最后一行。若最后一行没有返回值则返回值为<code>Unit</code>。在代码块中的this指代的是当前类对象。</p>
-<h4 id="apply的使用"><a href="#apply的使用" class="headerlink" title="apply的使用"></a>apply的使用</h4><p>　　看完了let，现在来看看apply函数的使用：apply函数可以在函数内调用该对象的任意方法，并返回该对象，依然先看看常规写法和等价写法。</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList = mutableListOf&lt;<span class="built_in">Int</span>&gt;()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 常规写法</span></span><br><span class="line">mutableList.add(<span class="number">1</span>)</span><br><span class="line">mutableList.add(<span class="number">2</span>)</span><br><span class="line">mutableList.remove(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用apply写法</span></span><br><span class="line">mutableList.apply &#123;</span><br><span class="line">    add(<span class="number">1</span>)</span><br><span class="line">    add(<span class="number">2</span>)</span><br><span class="line">    remove(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>let函数是it作为参数传进来，apply怎么变成了this，而且直接调用了<code>add()</code>方法？别急，先看看在Android Studio中是什么样的。</p>
-<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/11/02/8BindhsRYIDPqlE.png" alt="KotlinNormal_apply_1"></p>
-<p>对比let函数，可以发现apply传入的参数名由<code>it</code>变成了<code>this</code>(但是他们指代的对象都是<code>mutableList</code>)，并且在函数内部this指代的对象也从<strong>类对象</strong>变成了<strong>当前对象</strong>。首先，我们知道<code>this</code>是具有特殊意义的。其次，我们也知道通过<code>this.method()</code>方式调用方法是可以省略<code>this</code>的，所以这也就是apply函数定义中的<strong>可以在函数内调用该对象的任意方法</strong>（私有方法还是不行哦）。最后来看一下apply函数和let函数的声明：</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// apply函数的声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> T.<span class="title">apply</span><span class="params">(block: <span class="type">T</span>.() -&gt; <span class="type">Unit</span>)</span></span>: T &#123;</span><br><span class="line">    block()</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// let函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">let</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block(<span class="keyword">this</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>啊？，这<code>T.()</code>是个什么啊？我们只见过<code>block: (T) -&gt; Unit</code>和<code>block: () -&gt; Unit</code>。也没有见过<code>block: T.() -&gt; Unit</code>啊！T不一个类么？怎么可以直接<code>T.()</code>呢？</p>
-<p>　　我们看看文档的描述：</p>
-<blockquote>
-<p>　　这个函数接受一个名为<code>init</code>的参数，该参数本身就是一个函数。该函数的类型就是<code>T.() -&gt; Unit</code>这意味着我们需要向函数传递一个T类型的实例，并且我们可以在函数内部调用该实例的成员。并且可以通过this关键字访问。</p>
-</blockquote>
-<p>如果不懂也没有关系，我们只要记住<code>T.() -&gt; Unit</code>这是一个类型，并且函数体内部使用this关键字访问。这就是造成let和apply函数中传入的参数一个是it，一个是this的原因。我们就不详细讲解这个了。感兴趣的可以自行谷歌。</p>
-<p>　　总结一下：apply函数是一个扩展函数。从截图中<code>returnResult</code>的类型也可以很明显看出来：其返回值就是当前对象。在代码块中的this指代的是调用apply函数的实例对象。</p>
-<h4 id="with的使用"><a href="#with的使用" class="headerlink" title="with的使用"></a>with的使用</h4><p>　　从使用上来看with函数更像是let + apply函数。但是因为with函数是唯一的一个非扩展函数。所以在写法上和其他函数还是有一点差异。我们还是先看看实际的代码：</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList: MutableList&lt;<span class="built_in">Int</span>&gt; = mutableListOf()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 正常写法</span></span><br><span class="line">mutableList.add(<span class="number">1</span>)</span><br><span class="line">mutableList.add(<span class="number">2</span>)</span><br><span class="line"><span class="keyword">val</span> returnResult = <span class="string">&quot;3&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用with写法</span></span><br><span class="line"><span class="keyword">val</span> returnResult = with(mutableList) &#123;</span><br><span class="line">    add(<span class="number">1</span>)</span><br><span class="line">    add(<span class="number">2</span>)</span><br><span class="line">    <span class="string">&quot;3&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>我们都知道函数都有<code>object?.method()</code>的形式去调用，表示object不为null时才去调用方法。with怎么去实现<code>?.</code>的调用形式。可以参考如下形式，这是我个人写的比较多的一种形式：</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList2: MutableList&lt;<span class="built_in">Int</span>&gt;? = mutableListOf()</span><br><span class="line">with(mutableList2 ?: <span class="keyword">return</span>) &#123;</span><br><span class="line">    add(<span class="number">1</span>)</span><br><span class="line">    add(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>但是需要注意的是：这行with语句应该放在最后，即<strong>在with之后不会有代码需要执行</strong>。因为当<code>mutableList2</code>为null时会执行return结束整个方法的执行。如果后面还有代码需要执行的话还是老老实实的做非空判断吧。</p>
-<p>　　总结一下：with = let + apply。with是唯一的一个非扩展函数。返回值和let一样是代码块最后一行。this指代的对象和apply一样是当前对象。</p>
-<h4 id="run的使用"><a href="#run的使用" class="headerlink" title="run的使用"></a>run的使用</h4><p>　　run函数的定义和apply函数的定义很像，区别在于apply函数的返回值是当前对象，而run函数返回值是代码块最后一行。</p>
-<h4 id="also的使用"><a href="#also的使用" class="headerlink" title="also的使用"></a>also的使用</h4><p>　　also函数的定义和let函数定义很像，区别在于let函数的返回值是代码块最后一行，而also的返回值是当前对象。</p>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>　　没了？没了。真的没了！其实只要理解清楚了let函数和apply函数，基本就全部都清楚了。从其函数声明上就可以看出他们有许多相似之处。</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// let函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">let</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block(<span class="keyword">this</span>)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// apply函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> T.<span class="title">apply</span><span class="params">(block: <span class="type">T</span>.() -&gt; <span class="type">Unit</span>)</span></span>: T &#123;</span><br><span class="line">    block()</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// with函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> <span class="title">with</span><span class="params">(receiver: <span class="type">T</span>, block: <span class="type">T</span>.() -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> receiver.block()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// run函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">run</span><span class="params">(block: <span class="type">T</span>.() -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// also函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> T.<span class="title">also</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">Unit</span>)</span></span>: T &#123;</span><br><span class="line">    block(<span class="keyword">this</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>下面给张表格清晰的对比它们之间的区别：</p>
-<table>
-<thead>
-<tr>
-<th align="center">函数名</th>
-<th align="center">是否为扩展函数</th>
-<th align="center">返回值</th>
-<th align="center">this指代的对象</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">let</td>
-<td align="center">true</td>
-<td align="center">代码块最后一行</td>
-<td align="center">当前类对象</td>
-</tr>
-<tr>
-<td align="center">apply</td>
-<td align="center">true</td>
-<td align="center">当前对象</td>
-<td align="center">调用apply的对象</td>
-</tr>
-<tr>
-<td align="center">with</td>
-<td align="center">false</td>
-<td align="center">代码块最后一行</td>
-<td align="center">传入with的对象</td>
-</tr>
-<tr>
-<td align="center">run</td>
-<td align="center">true</td>
-<td align="center">代码块最后一行</td>
-<td align="center">调用run的对象</td>
-</tr>
-<tr>
-<td align="center">also</td>
-<td align="center">true</td>
-<td align="center">当前对象</td>
-<td align="center">当前类对象</td>
-</tr>
-</tbody></table>
-]]></content>
-      <categories>
-        <category>Kotlin</category>
-      </categories>
-      <tags>
-        <tag>Kotlin</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Kotlin中的操作符和部分关键字</title>
     <url>/2021/01/05/KotlinOperator/</url>
     <content><![CDATA[<h3 id="操作符-运算符-重载"><a href="#操作符-运算符-重载" class="headerlink" title="操作符(运算符)重载"></a>操作符(运算符)重载</h3><h4 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h4><blockquote>
@@ -223,68 +118,228 @@
       </tags>
   </entry>
   <entry>
-    <title>基于MvRx+Epoxy的MvRx的MVVM</title>
-    <url>/2020/09/15/MVVM/</url>
-    <content><![CDATA[<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>　　MVVM是Model-View-ViewModel的简写。是一个推出来很久并且已经非常成熟的框架。相比较于与MVC好处很多就不赘述了。重点在于当前使用的MVP框架和MVVM做比较。首先看一哈MVVM的大体结构。</p>
-<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/03/08/Fhan2SiD81ypLWU.jpg" alt="mvrx_mvvm">)</p>
-<p>其中每个模块都有自己明确的分工，各司其职。</p>
-<ul>
-<li><strong>Activity</strong></li>
-</ul>
-<p>　　activity不在意数据的来源，只负责将ViewModel中的数据绑定到UI。是一个管理者，简言之就是activity的代码几乎都是和UI相关的。</p>
-<ul>
-<li><strong>ViewModel</strong></li>
-</ul>
-<p>　　ViewModel不在意界面如何展示，只负责处理数据。并将处理好的数据放到数据集合中，并且通知activity数据已经处理完毕。从这点来说，一个ViewModel更像一个工人，用来处理某一种或者某一类数据。对应在我们的项目中就是一个小模块的数据（或者说是某个接口数据）。当前我们的MVP框架对于多个Activity调用同一个接口需要重复去完成这项工作。但是对于ViewModel来说，它可以提供给多个activity使用，因为它只负责处理数据。让一个Activity依赖多个ViewModel。来共同完成界面的显示工作。</p>
-<ul>
-<li><strong>Repostory</strong></li>
-</ul>
-<p>　　repostory就是仓库的意思。这是一个数据仓库。ViewModel需要处理的原始数据均从Repostory中获取，repostory主要负责协调本地数据和远端数据。</p>
-<h3 id="技术"><a href="#技术" class="headerlink" title="技术"></a>技术</h3><p>　　我在搭建框架的时候看了许多东西，从中选择，有些好的我也是现学的。不一定理解到位了，如有错误还请指正。</p>
-<h4 id="Kodein"><a href="#Kodein" class="headerlink" title="Kodein"></a>Kodein</h4><blockquote>
-<p><a href="https://github.com/Kodein-Framework/Kodein-DI">依赖注入框架Kedein连接</a></p>
+    <title>Kotlin标准库函数let，apply，with，run，also</title>
+    <url>/2020/11/02/Kotlin%20Basic%20Function/</url>
+    <content><![CDATA[<h3 id="简述"><a href="#简述" class="headerlink" title="简述"></a>简述</h3><p>　　相比较于Java，在Kotlin中提供了许多的内置函数来帮助开发者写出更优雅的代码，同样的逻辑，在Kotlin中可以有更好的表达，当然你也可以不使用这些函数。</p>
+<p>　　要弄明白这几个函数的具体使用，我们只需要从三个角度：是不是扩展函数？、返回值是什么？、this指的是谁？。只要弄清楚了这三点就理解了let,apply等函数。代码使用了lambda表达式，如果不清楚lambda表达式和扩展函数的可以参考下面的链接。</p>
+<blockquote>
+<p><a href="https://kaixue.io/kotlin-lambda/">Kotlin 的 Lambda 表达式，大多数人学得连皮毛都不算</a></p>
 </blockquote>
-<p>　　为什么选择kodein是因为它注入方便。使用也方便。我们看实际代码</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 注入</span></span><br><span class="line"><span class="keyword">const</span> <span class="keyword">val</span> TAG_KODEIN_MODULE_REPOSITORY_OAUTH = <span class="string">&quot;oauthRepositoryModel&quot;</span></span><br><span class="line"><span class="keyword">val</span> oauthRepositoryModel = Kodein.Module(TAG_KODEIN_MODULE_REPOSITORY_OAUTH) &#123;</span><br><span class="line">    bind&lt;OauthRemoteDataSource&gt;() with singleton &#123; OauthRemoteDataSource() &#125;</span><br><span class="line">    bind&lt;OauthRepository&gt;() with singleton &#123; </span><br><span class="line">        OauthRepository(instance(), instance())</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 使用</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">val</span> oauthRepo <span class="keyword">by</span> BaseApplication.INSTANCE.kodein.instance&lt;OauthRepository&gt;()</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><a href="https://www.kotlincn.net/docs/reference/extensions.html">Kotlin中文官方文档-扩展函数</a></p>
+</blockquote>
+<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><p>　　我们一开始就说了这些函数是为了让代码看起来更加的简洁，所以这些函数没有实现任何功能，即使不会也不会影响编码。但是别人用了你看不懂这就不好吧。</p>
+<p>　　在学习使用过程中我们带着上述的三个问题。因为这几个函数有很多相似性，所以我重点介绍<code>let</code>函数和<code>apply</code>函数。当我们能够清晰的使用者两个函数时，其他函数也就不在话下。</p>
+<h4 id="let的使用"><a href="#let的使用" class="headerlink" title="let的使用"></a>let的使用</h4><p>　　<code>let()</code>的定义是这样的，默认当前这个对象作为闭包(代码块)的it参数，返回值是函数里面最后一行。知道定义后看看let函数是去替换怎样的一种写法呢。</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> activityMainTopTitle = findViewById&lt;TextView&gt;(R.id.activityMainTopTitle)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 常规写法</span></span><br><span class="line">activityMainTopTitle.text = <span class="string">&quot;title&quot;</span></span><br><span class="line"><span class="comment">// ...更多的一些设置</span></span><br><span class="line">activityMainTopTitle.setBackgroundColor(Color.RED)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用let的写法</span></span><br><span class="line">activityMainTopTitle.let &#123;</span><br><span class="line">    it.text = <span class="string">&quot;title&quot;</span></span><br><span class="line">    <span class="comment">// ...更多的一些设置</span></span><br><span class="line">    it.setBackgroundColor(Color.RED)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>这代码看着相对于Dagger变复杂了。其实并没有变得复杂。数据仓库是我们很多地方都需要调用的。kodein的好处就在于任何地方都可以注入，任何地方都可以得到实例化对象。除了singleton之外还有别的注入方式。</p>
+<p>我个人一般不会这样去使用let，这样反而让代码变得不那么简洁（个人感觉，但是可读性变高了，可读性变高了不也是一种简洁么?）。多数情况下使用<code>?.let</code>的形式。</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList2: MutableList&lt;<span class="built_in">Int</span>&gt;? = mutableListOf&lt;<span class="built_in">Int</span>&gt;()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 常规写法</span></span><br><span class="line"><span class="keyword">if</span> (mutableList2 != <span class="literal">null</span>) &#123;</span><br><span class="line">    mutableList2.add(<span class="number">1</span>)</span><br><span class="line">    mutableList2.add(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用let的写法。</span></span><br><span class="line"><span class="comment">// 表示mutableList2不为null的条件下，才会去执行let函数体</span></span><br><span class="line">mutableList2?.let &#123;</span><br><span class="line">    it.add(<span class="number">1</span>)</span><br><span class="line">    it.add(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>啊这，那我要是要处理为空的情况呢，是不是就不能使用let了？ 有得，有得。如果要实现<code>if-else</code>结构，你可以这样：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line">mutableList2?.let &#123;</span><br><span class="line">    it.add(<span class="number">1</span>)</span><br><span class="line">    it.add(<span class="number">2</span>)</span><br><span class="line">&#125; ?: let &#123;</span><br><span class="line">    <span class="comment">// mutableList2为空又怎么撸。</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>值得注意的一点就是<code>?.let</code>只能去实现<code>if-else</code>中非空判断的逻辑，其他情况还是做不到呢。最后我们看一下let函数的声明：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// let函数声明（去掉契约contract部分，对实际实现无影响，方便理解。下同）</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">let</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block(<span class="keyword">this</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>结合上面的代码和函数声明是不是对let的认识又清晰了很多呢，为了更好的回答上面的三个问题。我截取了Android Studio中的代码帮助大家理解：</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/11/02/lzmDuJfXRKG8w6r.png" alt="KotlinNormal_let_1"></p>
+<p>　　总结一下：let函数是一个扩展函数，其返回值是代码块最后一行。若最后一行没有返回值则返回值为<code>Unit</code>。在代码块中的this指代的是当前类对象。</p>
+<h4 id="apply的使用"><a href="#apply的使用" class="headerlink" title="apply的使用"></a>apply的使用</h4><p>　　看完了let，现在来看看apply函数的使用：apply函数可以在函数内调用该对象的任意方法，并返回该对象，依然先看看常规写法和等价写法。</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList = mutableListOf&lt;<span class="built_in">Int</span>&gt;()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 常规写法</span></span><br><span class="line">mutableList.add(<span class="number">1</span>)</span><br><span class="line">mutableList.add(<span class="number">2</span>)</span><br><span class="line">mutableList.remove(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用apply写法</span></span><br><span class="line">mutableList.apply &#123;</span><br><span class="line">    add(<span class="number">1</span>)</span><br><span class="line">    add(<span class="number">2</span>)</span><br><span class="line">    remove(<span class="number">1</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>let函数是it作为参数传进来，apply怎么变成了this，而且直接调用了<code>add()</code>方法？别急，先看看在Android Studio中是什么样的。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2020/11/02/8BindhsRYIDPqlE.png" alt="KotlinNormal_apply_1"></p>
+<p>对比let函数，可以发现apply传入的参数名由<code>it</code>变成了<code>this</code>(但是他们指代的对象都是<code>mutableList</code>)，并且在函数内部this指代的对象也从<strong>类对象</strong>变成了<strong>当前对象</strong>。首先，我们知道<code>this</code>是具有特殊意义的。其次，我们也知道通过<code>this.method()</code>方式调用方法是可以省略<code>this</code>的，所以这也就是apply函数定义中的<strong>可以在函数内调用该对象的任意方法</strong>（私有方法还是不行哦）。最后来看一下apply函数和let函数的声明：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// apply函数的声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> T.<span class="title">apply</span><span class="params">(block: <span class="type">T</span>.() -&gt; <span class="type">Unit</span>)</span></span>: T &#123;</span><br><span class="line">    block()</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// let函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">let</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block(<span class="keyword">this</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>啊？，这<code>T.()</code>是个什么啊？我们只见过<code>block: (T) -&gt; Unit</code>和<code>block: () -&gt; Unit</code>。也没有见过<code>block: T.() -&gt; Unit</code>啊！T不一个类么？怎么可以直接<code>T.()</code>呢？</p>
+<p>　　我们看看文档的描述：</p>
+<blockquote>
+<p>　　这个函数接受一个名为<code>init</code>的参数，该参数本身就是一个函数。该函数的类型就是<code>T.() -&gt; Unit</code>这意味着我们需要向函数传递一个T类型的实例，并且我们可以在函数内部调用该实例的成员。并且可以通过this关键字访问。</p>
+</blockquote>
+<p>如果不懂也没有关系，我们只要记住<code>T.() -&gt; Unit</code>这是一个类型，并且函数体内部使用this关键字访问。这就是造成let和apply函数中传入的参数一个是it，一个是this的原因。我们就不详细讲解这个了。感兴趣的可以自行谷歌。</p>
+<p>　　总结一下：apply函数是一个扩展函数。从截图中<code>returnResult</code>的类型也可以很明显看出来：其返回值就是当前对象。在代码块中的this指代的是调用apply函数的实例对象。</p>
+<h4 id="with的使用"><a href="#with的使用" class="headerlink" title="with的使用"></a>with的使用</h4><p>　　从使用上来看with函数更像是let + apply函数。但是因为with函数是唯一的一个非扩展函数。所以在写法上和其他函数还是有一点差异。我们还是先看看实际的代码：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList: MutableList&lt;<span class="built_in">Int</span>&gt; = mutableListOf()</span><br><span class="line"></span><br><span class="line"><span class="comment">// 正常写法</span></span><br><span class="line">mutableList.add(<span class="number">1</span>)</span><br><span class="line">mutableList.add(<span class="number">2</span>)</span><br><span class="line"><span class="keyword">val</span> returnResult = <span class="string">&quot;3&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 换用with写法</span></span><br><span class="line"><span class="keyword">val</span> returnResult = with(mutableList) &#123;</span><br><span class="line">    add(<span class="number">1</span>)</span><br><span class="line">    add(<span class="number">2</span>)</span><br><span class="line">    <span class="string">&quot;3&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们都知道函数都有<code>object?.method()</code>的形式去调用，表示object不为null时才去调用方法。with怎么去实现<code>?.</code>的调用形式。可以参考如下形式，这是我个人写的比较多的一种形式：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> mutableList2: MutableList&lt;<span class="built_in">Int</span>&gt;? = mutableListOf()</span><br><span class="line">with(mutableList2 ?: <span class="keyword">return</span>) &#123;</span><br><span class="line">    add(<span class="number">1</span>)</span><br><span class="line">    add(<span class="number">2</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>但是需要注意的是：这行with语句应该放在最后，即<strong>在with之后不会有代码需要执行</strong>。因为当<code>mutableList2</code>为null时会执行return结束整个方法的执行。如果后面还有代码需要执行的话还是老老实实的做非空判断吧。</p>
+<p>　　总结一下：with = let + apply。with是唯一的一个非扩展函数。返回值和let一样是代码块最后一行。this指代的对象和apply一样是当前对象。</p>
+<h4 id="run的使用"><a href="#run的使用" class="headerlink" title="run的使用"></a>run的使用</h4><p>　　run函数的定义和apply函数的定义很像，区别在于apply函数的返回值是当前对象，而run函数返回值是代码块最后一行。</p>
+<h4 id="also的使用"><a href="#also的使用" class="headerlink" title="also的使用"></a>also的使用</h4><p>　　also函数的定义和let函数定义很像，区别在于let函数的返回值是代码块最后一行，而also的返回值是当前对象。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>　　没了？没了。真的没了！其实只要理解清楚了let函数和apply函数，基本就全部都清楚了。从其函数声明上就可以看出他们有许多相似之处。</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// let函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">let</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block(<span class="keyword">this</span>)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// apply函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> T.<span class="title">apply</span><span class="params">(block: <span class="type">T</span>.() -&gt; <span class="type">Unit</span>)</span></span>: T &#123;</span><br><span class="line">    block()</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// with函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> <span class="title">with</span><span class="params">(receiver: <span class="type">T</span>, block: <span class="type">T</span>.() -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> receiver.block()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// run函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T, R&gt;</span> T.<span class="title">run</span><span class="params">(block: <span class="type">T</span>.() -&gt; <span class="type">R</span>)</span></span>: R &#123;</span><br><span class="line">    <span class="keyword">return</span> block()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// also函数声明</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">inline</span> <span class="function"><span class="keyword">fun</span> <span class="type">&lt;T&gt;</span> T.<span class="title">also</span><span class="params">(block: (<span class="type">T</span>) -&gt; <span class="type">Unit</span>)</span></span>: T &#123;</span><br><span class="line">    block(<span class="keyword">this</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下面给张表格清晰的对比它们之间的区别：</p>
+<table>
+<thead>
+<tr>
+<th align="center">函数名</th>
+<th align="center">是否为扩展函数</th>
+<th align="center">返回值</th>
+<th align="center">this指代的对象</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">let</td>
+<td align="center">true</td>
+<td align="center">代码块最后一行</td>
+<td align="center">当前类对象</td>
+</tr>
+<tr>
+<td align="center">apply</td>
+<td align="center">true</td>
+<td align="center">当前对象</td>
+<td align="center">调用apply的对象</td>
+</tr>
+<tr>
+<td align="center">with</td>
+<td align="center">false</td>
+<td align="center">代码块最后一行</td>
+<td align="center">传入with的对象</td>
+</tr>
+<tr>
+<td align="center">run</td>
+<td align="center">true</td>
+<td align="center">代码块最后一行</td>
+<td align="center">调用run的对象</td>
+</tr>
+<tr>
+<td align="center">also</td>
+<td align="center">true</td>
+<td align="center">当前对象</td>
+<td align="center">当前类对象</td>
+</tr>
+</tbody></table>
+]]></content>
+      <categories>
+        <category>Kotlin</category>
+      </categories>
+      <tags>
+        <tag>Kotlin</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Git的使用和基本原理</title>
+    <url>/2021/03/14/Git/</url>
+    <content><![CDATA[<h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>　　版本控制系统<code>VCS(Version Control System)</code>，是一种用于管理控制代码版本的工具系统，通过该种系统能够实现对代码的追踪维护等功能。目前在使用的主流系统中，主要有以下两种：</p>
 <ul>
-<li><p>Provider binding : 每次加载都生成新的实例，无参， 传入<code>() -&gt; T</code></p>
+<li><strong>集中化的版本控制系统(Centralized Version Control Systems，简称 CVCS)</strong></li>
+</ul>
+<p>　　该类系统的主要的运作流程是，由单一的服务器承担中央仓库的角色，保存代码修订的所有版本及记录。然后各个协同人员通过拉取和推送代码进行协作开发，协同人员本地只需要留存需要修改的指定代码版本。这种做法对于早期靠着本地数据库维护的代码版本控制系统来说，管理员能更加清晰的了解到协同开发人员每次的修改及对他们的权限控制。当然，这样的系统也是存在一些致命的弱点的，单一的服务器作为最主要的角色，一旦出现了问题，那么所有连接服务器的客户端都无法提交或者更新代码，如果更严重一些，服务器的磁盘出了问题，整个工程的代码及代码历史都会丢失。国内一般使用是的 <code>SVN</code>，现在依然有一些企业使用的是这种管理工具。</p>
+<ul>
+<li><strong>分布化的版本控制系统(Distributed Version Control System，简称 DVCS)</strong></li>
+</ul>
+<p>　　为了解决集中化的版本控制系统所存在的隐患问题，分布式的版本控制系统就面世了，如<code>Git、Mercurial、Bazaar 以及 Darcs</code>等。其最明显与集中化系统的区别就是，在分布式的系统中，每一个客户端都保存有完整的修订历史记录的快照。这样每次代码修改的操作，都是其他客户端进行了一些代码仓库快照的备份，当某一个仓库出现问题时，可以通过其他仓库的完整记录来进行恢复。这里可能有一个疑问，就是每个客户端都保存有完整的修改历史仓库，那每一份仓库会不会都很大，对各个协同的人员来说，同步与备份或者本地的存储等有一定的压力。事实上，除去资源文件，代码的修订记录的大小是很可观的，同时，<code>git</code>中也针对这些进行了一定的优化，在同步与本地的存储上，实际使用的体验的还是很可观的。所以，如果项目中的资源文件较大时，依然可以考虑使用中央式的版本控制系统来进行管理。</p>
+<h3 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h3><p>　　一般来说，开始使用<code>git</code>的场景分为从远程服务器克隆已存在的项目和开始新项目，初始化仓库。前者直接使用<code>git clone XXXXX(远程仓库地址)</code>就可以将远端的仓库完整的拷贝到本地。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/03/14/FzLnCqGV3HK97sM.jpg" alt="克隆代码"></p>
+<p>　　不过从头开始初始化一个本地仓库，更容易去理解<code>git</code>的工作流程。命令<code>git init</code>可以将一个文件目录初始化为一个仓库， <code>git</code>会相应的生成一个<code>.git</code>的文件夹，这个文件夹就是 <strong>本地仓库（Local Repository）</strong>，这个文件夹中就会保存该目录中<strong>之后</strong>所有文件的改动记录，而这个目录在<code>git</code>中就被称为<code>工作区(Working Directory)</code>。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/03/14/xnK7UeGZ5kfhaqr.png" alt="git初始化"></p>
+<p>　　除了<code>工作区</code>以外，<code>git</code>中还有<code>暂存区</code>。(注意：这里我是新建了一个文件夹，进行的初始化操作，如果新建的文件夹是刚刚克隆的<code>git</code>目录中，在已存在的仓库中再次<code>git init</code>一个仓库会不会有什么问题，答案是并不会，<code>git</code>中使用的是目录管理而不是设备管理，一个仓库只会对应的管理其对应的目录，不会相互影响)</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/03/14/SNioDXVbxvuayE6.png" alt="git工作流程"></p>
+<p>　　如上图，是<code>git</code>的一个基本的工作流程：当我们在工作区域中修改了某个文件的文件内容时，<code>git</code>会自动检测到这种改动并进行了标记，然后需要我们手动的将这些改动添加(使用命令 <code>git add</code>)到暂存区中，这样我们所修改的东西就会被<code>git</code>记录下来，而没有添加到暂存区的改动在进行各种<code>git</code>命令时可能会丢失（例如切换分支等。）。如果我们确定了暂存区中的内容是这样的修改，就可以将暂存区的改动记录进行提交，那么这次修改的内容就会从暂存区迁移到仓库中，并在仓库中生成一个提交记录–<code>commit</code>。整个仓库中，所有的改动记录就是有一个一个的<code>commit</code>串行所构成的。以下就是文件在不同的区域的一个时序图：</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/03/14/iyjF6OocCxg3bnM.jpg" alt="git时序图"></p>
+<p>　　这里的checkout可以将任意一次的<code>commit</code>代码拿出来作为一个工作区。然后进行修改。所以我们应当要求每一个<code>commit</code>都是可运行的，没有预期之外错误的一个代码结点。也应该要求commit时是要写好message。方便checkout和查找历史记录。</p>
+<p>回到我们刚刚克隆的仓库中，使用命令<code>git log</code>可以查看当前仓库的一些日志。这里我还贴在Android Studio中的查看方式。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/03/14/duk2VIASaTpxyzg.png" alt="git日志-Android Studio"></p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/03/14/3d71JykpGaFNo85.png" alt="git日志"></p>
+<p>　　分析图中出现的数据，就衍生出来 <code>git</code> 中的几个重要的概念：</p>
+<h4 id="引用"><a href="#引用" class="headerlink" title="引用"></a>引用</h4><p>　　简单来说，<code>git</code>中的引用就是指向某个<code>commit</code>的快捷方式，我们通过操作引用能够快速的操作到某个具体的<code>commit</code>，可以看到上图中的内容，记录中显示，远端仓库有多次<code>commit</code>，每一次的<code>commit</code>的后面跟着一串字符串，这个字符串是根据该<code>commit</code>计算出来的<code>SHA-1</code>值(一种算法计算出来的值，两个 <code>commit</code> 计算出来的值很少能重复)，<code>commit</code>将其作为唯一的标识。大多数时候，我们需要操作具体的某个<code>commit</code>时，可以直接使用该值的前几位来代表这个<code>commit</code>（一般来说是6-8位，github使用的是7位，Android Studio使用的8位），如</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">git checkout 9fb106</span><br></pre></td></tr></table></figure>
+
+<p>在Android Studio中直接右键<code>commit</code>然后选择checkout Revision就会签出选中的<code>commit</code>。</p>
+<h4 id="HEAD"><a href="#HEAD" class="headerlink" title="HEAD"></a>HEAD</h4><p>　　这个引用比较特殊，它指的是<strong>指向当前<code>commit</code>的引用</strong>，当我们从远端仓库拉取代码时或者<code>checkout</code>新的分支时，<code>HEAD</code>指向会随着我们的操作相应的修改，使得它始终指向的是当前<strong>工作区</strong>中对应的<code>commit</code>。</p>
+<h4 id="master"><a href="#master" class="headerlink" title="master"></a>master</h4><p>　　这个是<code>git</code>在创建时，默认生成的一个分支。大多数工程都将该分支作为主分支使用，在开发时，建立其他分支来开发工作，最后将完善的功能合并到主分支中。上图中的<code>origin/develop</code>代表的是远程仓库的<code>develop</code>分支。<code>HEAD</code>指向的<code>commit</code>是<code>9fb106</code>，值得一提的是，无论本地的<code>HEAD</code>如何修改，远程仓库中的<code>HEAD</code>永远指向的是<code>master</code>分支。</p>
+<h4 id="branch"><a href="#branch" class="headerlink" title="branch"></a>branch</h4><p>　　分支，既然有默认的分支，那也代表我们可以创建其他分支。其实，在整个<code>git</code>仓库中，是由一个个的分支构成，而分支由一个个的<code>commit</code>构成。形象一点说就是<code>git</code>仓库像一颗大树，<code>master</code>分支就是大树成长时的主干，慢慢随着长大，出现了许多的树枝，这些树枝就是我们自己新建的<code>branch</code>，而树枝上的树叶就是一个个<code>commit</code>。</p>
+<p>　　当<code>HEAD</code>指向某个<code>branch</code>时，其实<strong>间接的</strong>是指向这个<code>branch</code>的某个<code>commit</code>(之所以说是间接的指向，是因为这种情况下的<code>HEAD</code>还是直接指向的<code>branch</code>，而<code>branch</code>指向的是它最新的<code>commit</code>，这样构成了间接的指向。还有直接的指向，就是使用<code>git checkout --detach</code>命令后，<code>HEAD</code>就会由指向<code>branch</code>变成指向<code>commit</code>)。如下所示:</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/03/14/jJratZHKGBkTCN2.jpg" alt="git Head指向"></p>
+<p>　　<code>git checkout xxx</code>这个命令为 签出，使用该命令签出某个<code>commit</code>时，工作区的内容会替换为该<code>commit</code>，并同时将 <code>HEAD</code> 引用指向该<code>commit</code>，当签出命令为某个分支时，会签出该分支的最新的那个<code>commit</code>。<code>branch</code>的构成是一条从起始<code>commit</code>到该branch最新的<code>commit</code>的一条路径，它所包含的信息就是这条<code>commit</code>链上所有的<code>commit</code>。</p>
+<h3 id="基本流程中的操作"><a href="#基本流程中的操作" class="headerlink" title="基本流程中的操作"></a>基本流程中的操作</h3><h4 id="流程操作"><a href="#流程操作" class="headerlink" title="流程操作"></a>流程操作</h4><p>　　假设现在我们对于文件的修改已经完成。我们可以使用<code>git status</code>命令来查看当前的一些状态。git对修改的文件进行了标识，显示为红色的 modified，红色的意思是代表这些改动还没有被添加到暂存区中，也就是处于一种被标记了，但是没有被记录的状态。然后执行<code>git add .</code>，将修改添加到暂存区中，再次使用<code>git status</code>命令来查看。刚才被标记为红色的现在变成了绿色。表示本次改的被添加到了暂存区中。</p>
+<p>　　最后使用<code>git commit -m &quot;本次提交的描述&quot;</code>命令可以将暂存区中的改动记录提交到仓库中，<code>HEAD</code>也指向了刚刚提交的最新的<code>commit</code>。但是需要注意的是，我们提交的仓库是本地仓库。也就是只有我们自己知道本次修改，而其他人都不知道本次修改。为了让别人知道本次修改我们需要将它推到远端。但是正常情况下，我们其实并不知道远端是否有新的改动，所以一个比较保险的做法，先进行一次拉取操作<code>git pull</code>，这样如果远端有人提交了改动，我们就能先拉取合并。再把最后合并通过<code>git push</code>推到远端仓库。Android Studio可视化操作很简单就不多赘述。</p>
+<p>　　这算是一次比较顺利的工作流程，从本地修改文件，然后提交记录，再推送到远端进行了合并，以方便其他同事拉取你的修改。但是大多数情况下，并不会这么顺利，会产生比较多的冲突。</p>
+<h4 id="关于CLONE"><a href="#关于CLONE" class="headerlink" title="关于CLONE"></a>关于CLONE</h4><p>　　当我们使用<code>git clone</code>的命令时，<code>git</code>首先是将远程仓库的快照下载到本地。然后根据快照中的分支和<code>commit</code>去下载对应的<code>commit</code>。然后<code>git</code>会从第一个起点的<code>commit</code>开始，一个一个的应用<code>commit</code>链上的<code>commit</code>到工作区中，直到最新的那个<code>commit</code>被应用上。</p>
+<h4 id="关于-ADD"><a href="#关于-ADD" class="headerlink" title="关于 ADD"></a>关于 ADD</h4><p>　　刚刚的流程中使用了<code>add</code>命令，我使用的是<code>git add .</code>后面跟了一个<code>.</code>这个的意思是，<strong>全部暂存</strong>。如果你不想全部暂存，就需要把<code>.</code>替换成需要暂存的<strong>文件名</strong>。我们在工作区中，新增的文件，默认是不会被<code>git</code>所追踪的，也就说文件中任何的改动是不被<code>git</code>检测记录的。需要使用<code>git add</code>命令将文件添加，这样<code>git</code>才会开始追踪，所以新增一个文件时，使用<code>add</code>命令的含义其实有两层，一个将这个文件的新增作为工作区中的一种形式的改动，提交到<code>git</code>仓库中，第二层就是让文件被<code>git</code>所追踪。其他时候，当我们做出一些修改的时候，需要添加到暂存区中，也是使用此命令。</p>
+<p>　　需要注意的一点是，<code>git</code>中所记录的是文件内容的改动，而非文件本身，所以当添加了一次文件的修改后，又修改了相同文件的内容，还需要再添加一次刚刚的修改。如下操作：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"># 改动了文本的内容</span><br><span class="line"># ------------</span><br><span class="line"># 添加到暂存区</span><br><span class="line">git add . </span><br><span class="line"># 再次改动文本的内容</span><br><span class="line"># ------------</span><br><span class="line"># 注意这里还需要添加刚刚改动的内容到暂存区中</span><br><span class="line">git add .</span><br><span class="line"># 这样两次改动才会都被仓库记录</span><br></pre></td></tr></table></figure>
+
+<h4 id="关于-PULL"><a href="#关于-PULL" class="headerlink" title="关于 PULL"></a>关于 PULL</h4><p>　　<code>git pull</code>操作其实就做了两件事，先将远端的<code>commits</code>拉取到本地，然后进行一次合并操作。</p>
+<h4 id="关于-PUSH"><a href="#关于-PUSH" class="headerlink" title="关于 PUSH"></a>关于 PUSH</h4><p>　　刚刚的操作中，使用<code>git push</code>就将<code>master</code>分支上新的<code>commit</code>推到了远端仓库，与远端仓库的<code>master</code>分支进行了合并。这其实是一种粗略的说法，一笔带过了。</p>
+<p>　　<code>git push</code> 会将默认分支的本地提交记录上传到远程分支上进行合并，如果不指定的话，所更新的分支为<code>git config 中的 push.default的值对应的分支，这个值默认为:current</code> 其中的值<code>git config</code> 命令来进行修改， 进而改变 push 时的行为，详情查看<a href="https://git-scm.com/docs/git-config#git-config-pushdefault">git config</a>。如果需要提交记录的分支不是默认的分支，需要在命令中添加几个新的参数。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">git push origin target_feature</span><br></pre></td></tr></table></figure>
+
+<p>那么这次的 push 会推向远程分支的<code>target_feature</code>分支。</p>
+<p><strong>注意：push 时不会上传 HEAD 的指向，远程分支的 HEAD 永远指向的是 <code>master</code></strong></p>
+<h3 id="分支相关的操作"><a href="#分支相关的操作" class="headerlink" title="分支相关的操作"></a>分支相关的操作</h3><h4 id="分支的创建和删除"><a href="#分支的创建和删除" class="headerlink" title="分支的创建和删除"></a>分支的创建和删除</h4><ol>
+<li><p>创建 <code>branch</code> 的方式是 <code>git branch 名称</code> 或 <code>git checkout -b 名称</code>（创建后自动切换）；</p>
 </li>
-<li><p>Singleton binding : 单例 传入 <code>() → T</code></p>
+<li><p>切换的方式是 <code>git checkout 名称</code>；</p>
 </li>
-<li><p>Eager singleton : 单例 创建了 Kodein 实例后立即实例化 传入 <code>() -&gt; T</code></p>
+<li><p>删除的方式是 <code>git branch -d 名称</code>。</p>
 </li>
-<li><p>Factory binding : 每次加载都生成新的实例，需要参数，传入<code>(A) -&gt; T</code></p>
+</ol>
+<h4 id="分支的合并-Merge"><a href="#分支的合并-Merge" class="headerlink" title="分支的合并 Merge"></a>分支的合并 Merge</h4><p>　　多数情况下，我们需要将不同的分支的代码进行合并，那么就需要使用到<code>git merge</code>命令，该命令具体做的事情是：<strong>从目标 <code>commit</code> 和当前 <code>commit</code> （即 <code>HEAD</code>所指向的 <code>commit</code>）分叉的位置起，把目标 <code>commit</code> 的路径上的所有 <code>commit</code> 的内容一并应用到当前 <code>commit</code>，然后自动生成一个新的 <code>commit</code>。</strong>在合并时，最舒服的状态就是，新的分支的改动是领先于合并的分支的，这时候只需要将新分支的<code>commits</code>直接移过来，就完成了一次合并，在<code>git</code>中被叫做<code>fast-forward</code>。不过大多数时候，还是不那么舒服的。</p>
+<ul>
+<li><p><strong>解决冲突</strong></p>
+<p>　　同一文件，在不同的分支上都进行了改动，对于<code>git</code> 而言，可以分为良性情况和恶性情况(<code>git</code>中没有这个定义，只是为了理解)。什么是良性的呢，就是两次改动的地方不一样，比如有5行文本，<code>branch1</code>分支中改下了第4行，而<code>master</code>分支中修改了第3行，这样<code>git</code>就能知道两个分支改的东西不一样，就能自动合并，最后新生成的<code>commit</code>就是第3行和第4行都被修改了。对应来说，恶性的就是两个分支的改动，改了同一处地方，<code>git</code>并不知道哪个分支的改动才是我们想要的，所以最后的决定权交到了我们自己手里，这个时候就需要手动的处理冲突。<br>  　　<br>  　　在git中，对于这种冲突，会做一些明显的标识如下：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&gt;&gt;&gt;&gt;&gt;&gt;&gt; HEAD</span><br><span class="line">第4行内容master分支的修改</span><br><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">第4行内容 branch1分支的修改</span><br><span class="line">&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; branch1</span><br></pre></td></tr></table></figure>
+
+<p>这个很容易理解，上面的内容是<code>HEAD</code>所在的<code>master</code>分支的修改，下面的是    <code>branch1</code>分支的修改，我们根据具体的需求进行修改，删除<code>git</code>自动生成的<code>&gt;&gt;&gt;&gt;&gt;</code>和<code>======</code>。这算一次新的改动了，所以需要再次进行<code>add .</code>和<code>commit</code>。</p>
 </li>
-<li><p>Multiton binding : 有参的单例，同样参数同样实例，传入 <code>(A) -&gt; T</code></p>
-</li>
-<li><p>Tagged bindings : 通过 tag 来区分同类型不同的实例</p>
+<li><p><strong>不解决冲突</strong></p>
+<p>上诉的操作代表正常处理了一次冲突，如果不需要处理，想要放弃。可以使用以下命令：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">git merge --abort</span><br></pre></td></tr></table></figure>
+
+<p>之后便回到 <code>merge</code> 前的状态。如图所示，在合并时，产生了冲突，执行命令后，状态回到了<code>master</code>合并之前。</p>
 </li>
 </ul>
-<h4 id="哆啦A梦"><a href="#哆啦A梦" class="headerlink" title="哆啦A梦"></a>哆啦A梦</h4><blockquote>
-<p><a href="https://www.dokit.cn/">android/Ios调试工具</a></p>
-</blockquote>
-<p>　　这个工具我是偶然间看到了，真的强推，很好用的一个工具。这其中提供的一些我觉得很强大的功能，着重说一哈里面有一个流量的工具，可以查看手机的流量情况和发出的每一个请求，并且能够查看请求的请求体和响应体。Crash和log也都是比较好的工具。DBView（虽然我们项目没有使用，但是也是一个强大的功能）</p>
-<p>　　因为在项目中没有去做网络日志，所以使用多啦A梦工具，电脑端可以配合Charles来使用更好。</p>
-<h3 id="utilcode"><a href="#utilcode" class="headerlink" title="utilcode"></a>utilcode</h3><blockquote>
-<p><a href="https://blog.csdn.net/yhd007/article/details/88015556">AndroidUntilCode部分使用，有些他也没有介绍到</a></p>
-</blockquote>
-<p>　　这是一个工具类集合，基本上你想的到的想不到的工具类都能在这里找到。</p>
-<h4 id="Epoxy-MvRx"><a href="#Epoxy-MvRx" class="headerlink" title="Epoxy+MvRx"></a>Epoxy+MvRx</h4><blockquote>
-<p><a href="https://github.com/airbnb/epoxy">Epoxy</a></p>
-<p><a href="https://github.com/airbnb/mavericks">MvRx，过完年这个家伙改名了，现在叫Mavericks</a></p>
-</blockquote>
-<p>　　最后讲到我们的主角，东西很多，我们结合代码讲。主要还是这几个方面。</p>
-<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 创建item</span></span><br><span class="line"><span class="comment">// 关联滑动事件</span></span><br><span class="line"><span class="comment">// 网络请求的几种方式</span></span><br><span class="line"><span class="comment">// 值的订阅</span></span><br><span class="line"><span class="comment">// 记录建议和改进的地方。</span></span><br></pre></td></tr></table></figure>
+<h3 id="进阶操作"><a href="#进阶操作" class="headerlink" title="进阶操作"></a>进阶操作</h3><h4 id="临时暂存"><a href="#临时暂存" class="headerlink" title="临时暂存"></a>临时暂存</h4><p>　　有时候，在不同分支工作时，需要偶尔切到其他分支看一行代码，或者调试个 BUG啥的，我们都是提交一个临时的<code>commit</code>再去切，这样算是一个保险的做法。还有更优雅一点的做法就是<code>git stash</code>命令，这个命令可以将目前工作区的改动都临时保存在一个独立的地方，等你搞好了其他的工作，再回来时，使用<code>git stash pop</code>就可以恢复了。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">git stash -u</span><br></pre></td></tr></table></figure>
 
+<blockquote>
+<p>注意：没有被 track 的文件（即从来没有被 add 过的文件不会被 stash 起来，因为 Git 会忽略它们。如果想把这些文件也一起 stash，可以加上 <code>-u</code> 参数，它是 <code>--include-untracked</code> 的简写。</p>
+</blockquote>
+<p>在Android studio中这样操作：</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/03/14/fwmlEBuSV9WQqPc.png" alt="git缓存区"></p>
+<p>需要注意的是在pop时需要勾选<code>Pop stash</code>，否者你保存的stash会一直存在栈中。</p>
+<h4 id="Tag的使用"><a href="#Tag的使用" class="headerlink" title="Tag的使用"></a>Tag的使用</h4><p>　　<code>tag</code>就是标签，当我们在一个分支上构建了不同版本的应用时，可以通过<code>tag</code>来进行标记。这是一种基础的用法。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">git tag -a v1.0.0 -m &#39;xxx build version&#39;</span><br></pre></td></tr></table></figure>
+
+<p>　　其实，<code>git</code> 的<code>tag</code>还可以用于自动化的构建和测试当中，本地打好了<code>tag</code>后，推送到远端仓库，在远端仓库中部署<code>CI</code>等自动化的脚本，可以检测到相应的<code>tag</code>来进行一系列的自动化操作。但是这个更多的是自动化构建方面的知识，有兴趣可以了解了解。</p>
+<blockquote>
+<p><a href="http://kescoode.com/travis-ci-android-github-release/"> 用TRAVIS CI给Android项目部署Github Release </a></p>
+</blockquote>
+<h4 id="恢复已删除的分支"><a href="#恢复已删除的分支" class="headerlink" title="恢复已删除的分支"></a>恢复已删除的分支</h4><p>　　有时候，不管有意无意，都可能误删了分支，<strong>一定要及时找回</strong>。操作步骤如下：</p>
+<ol>
+<li><p>使用<code>git reflog</code>命令查看<code>HEAD</code>移动的相关记录，这个记录最新的在最上面，找到与<code>branch1</code>相关的记录，如图，找到最后一次从<code>branch1</code>移动到<code>master</code>的记录，那么这条记录之前的<code>commit</code>肯定是<code>branch1</code>上的一条<code>commit</code>。</p>
+<p><img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/03/14/obXlveiYwNpCQP8.png" alt="git历史commit"></p>
+</li>
+<li><p>签出这个<code>commit</code>，并在该<code>commit</code>上建立之前误删的分支即可。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">git checkout ec651f2</span><br></pre></td></tr></table></figure>
+
+<p>依然需要注意的一点：<code>git</code>会定期回收无引用的<code>commit</code>，所以这个操作需要及时。</p>
+</li>
+</ol>
+<h4 id="仅合并少数几个-commit"><a href="#仅合并少数几个-commit" class="headerlink" title="仅合并少数几个 commit"></a>仅合并少数几个 commit</h4><p>　　在实际工作开发中，会遵循标准的 Git Work flow，对待不同的功能，会切出不同的分支进行 开发，所以，基于什么基准分支切出来的功能分支进行 开发，这是一个很重要的问题。</p>
+<p>　　如果切错了基准分支，你会发现可能最终开发完成之后， merge 不回去了。或者需要将某个分支上的 commit 代码，移植到某个分支上面，就需要使用到 cherry-pick 这个 git 命令了。</p>
+<p>这个命令的用法如下：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">git cherry-pick -x &lt;commit_id&gt;</span><br></pre></td></tr></table></figure>
+
+<p>其中<code>-x</code>的参数代表保留原提交者的信息，后面的<code>&lt;commit_id&gt;</code>的写法就是<code>&lt;start-commit-id&gt;…&lt;end-commit-id&gt;</code>这个代表一个从startCommitId到endCommitId的一个左开右闭的区别<code>(startId, endId]</code>，如果需要包含startId可以添加一个符号<code>&lt;start-commit-id&gt;^…&lt;end-commit-id&gt;</code>这样就是<code>[startId,endID]</code>的一个闭区间了。</p>
+<p>　　合并过程中，如果出现了冲突，就和普通冲突一样，手动的解决，然后添加提交，再执行git cherry-pick –continue就可以继续了，直到合并完成。</p>
+<blockquote>
+<p><a href="https://juejin.cn/post/6844903479421435918">Cherry-Pick | 一日一 Git</a></p>
+</blockquote>
+<h3 id="结束语"><a href="#结束语" class="headerlink" title="结束语"></a>结束语</h3><p>　　Git远比我想象的强大很多，也是在学习的时候才发现他拥有的功能很多，我所讲解的也只是冰山一角。还有诸如<strong>rebase 与 merge</strong>，　<strong>修正已提交的 Commit（不是最新的也可以修改）</strong>，　<strong>丢弃 commit(不是最新的也可以丢弃)**，　**修改已经 Push 的 commit</strong>等许多我都没有讲到。后面学习又在记录这些。</p>
 ]]></content>
       <categories>
         <category>Android</category>
       </categories>
       <tags>
-        <tag>框架</tag>
-        <tag>MVVM</tag>
+        <tag>版本控制</tag>
+        <tag>Git</tag>
       </tags>
   </entry>
   <entry>
