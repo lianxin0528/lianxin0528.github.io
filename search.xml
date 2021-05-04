@@ -443,4 +443,83 @@
         <tag>java</tag>
       </tags>
   </entry>
+  <entry>
+    <title>使用Room数据持久化</title>
+    <url>/2021/04/06/room/</url>
+    <content><![CDATA[<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>　　SQLite代码写起来繁琐而且容易出错。始终不如ORM框架（ 对象-关系映射Object/Relation Mapping，简称ORM）来的舒服。在使用上Room数据库不如ObjectBox等NoSQL数据库使用更直观、更方便。但是ObjectBox的上手难度会更高一点。但是要是熟悉使用的话，ObjectBox我感觉会更好一点。感兴趣的也可以自行了解一哈。后续应该会出文章去讲解。</p>
+<blockquote>
+<p><a href="https://objectbox.io/features/">ObjectBox（速度快，全自动数据库升级，编译时检查）</a></p>
+</blockquote>
+<p>　　前面有点主次不分了，其实这些数据库在使用上还是有很多相似之处。下面正式介绍Room数据库：</p>
+<p>　　什么是Room数据库呢？这是Google推出的数据库框架，属于ORM框架。主要是对SQLite做了一层抽象。简化了开发者对数据库的操作，其实呢，就是减少了模板代码的编写。并且支持编译时检查，并且返回支持LiveData。构成Room的主要组件包括<code>Entity </code>( 数据实体，对应数据库中的表)、<code>Dao</code>(数据访问对象，包含访问数据库的方法)、<code>Database</code>(数据库持有者)。贴一张Room不同组件之间关系的官方图：</p>
+<img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/05/04/NH4j8SQqhyna1gw.png" alt="Room不同组件之间的关系" style="zoom:80%;" />
+
+<h3 id="Room的使用"><a href="#Room的使用" class="headerlink" title="Room的使用"></a>Room的使用</h3><h4 id="依赖"><a href="#依赖" class="headerlink" title="依赖"></a>依赖</h4><p>　　在模块的build.gradle中添加如下依赖</p>
+<figure class="highlight groovy"><table><tr><td class="code"><pre><span class="line">apply <span class="attr">plugin:</span> <span class="string">&#x27;kotlin-kapt&#x27;</span></span><br><span class="line">dependencies &#123;</span><br><span class="line">  <span class="keyword">def</span> room_version = <span class="string">&quot;2.2.6&quot;</span></span><br><span class="line"></span><br><span class="line">  implementation <span class="string">&quot;androidx.room:room-runtime:$room_version&quot;</span></span><br><span class="line">  kapt <span class="string">&quot;androidx.room:room-compiler:$room_version&quot;</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// optional - Kotlin Extensions and Coroutines support for Room</span></span><br><span class="line">  implementation <span class="string">&quot;androidx.room:room-ktx:$room_version&quot;</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// optional - Test helpers</span></span><br><span class="line">  testImplementation <span class="string">&quot;androidx.room:room-testing:$room_version&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>添加完成，现在可以开始使用Room数据库了。</p>
+<h4 id="Entity-创建表"><a href="#Entity-创建表" class="headerlink" title="Entity(创建表)"></a>Entity(创建表)</h4><p>　　创建数据表的时候我们需要使用到<code>@Entity</code>注解。当一个类（这个类可以是普通类，也可以是data class，<strong>但是字段名一定不能用<code>val</code>修饰，一定不能</strong>）被当前注解标记时，会自动生成对应的数据库表单。</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Entity(tableName = <span class="meta-string">&quot;fruit&quot;</span>)</span></span><br><span class="line"><span class="keyword">data</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitEntity</span></span>(</span><br><span class="line">    <span class="meta">@PrimaryKey(autoGenerate = false)</span></span><br><span class="line">    <span class="keyword">var</span> id: <span class="built_in">Int</span>,</span><br><span class="line">    <span class="meta">@ColumnInfo(name = <span class="meta-string">&quot;fruitName&quot;</span>, defaultValue = <span class="meta-string">&quot;未知名称&quot;</span>)</span></span><br><span class="line">    <span class="keyword">var</span> name: String,</span><br><span class="line">    <span class="keyword">var</span> owner: <span class="built_in">Int</span>,</span><br><span class="line">    <span class="keyword">var</span> weight: <span class="built_in">Double</span>,</span><br><span class="line">    <span class="meta">@ColumnInfo(typeAffinity = ColumnInfo.REAL)</span></span><br><span class="line">    <span class="keyword">var</span> typeAff: String,</span><br><span class="line">    <span class="meta">@Ignore</span> <span class="comment">// 这里这样的Ignore写法是错误的，后面会讲到。这里只是为了表示有这个字段。</span></span><br><span class="line">    <span class="keyword">var</span> count: <span class="built_in">Int</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>上面我们使用了<code>@Entity</code>来生成一个数据表，也使用很多相关的注解来辅助我们完善一张表。我们来一个一个的介绍使用到的注解。</p>
+<ul>
+<li><p><code>@Entity</code></p>
+<p>用于注释类，tableName指定将要创建的数据库表名称，不指定默认和类名一致。其中还有<code>primaryKeys</code>和<code>foreignKeys</code>等属性用来指定主外键集合。上面代码指定主键的方式还可以写成：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Entity(primaryKeys = [<span class="meta-string">&quot;id&quot;</span>])</span></span><br><span class="line"><span class="keyword">data</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitEntity</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这样我们就不需要使用<code>@PrimaryKey</code>来注解id。autoGenerate的默认值就是<code>false</code></p>
+<p>同样的外键也可以用如下形式：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Entity(</span></span><br><span class="line"><span class="meta">    foreignKeys = [ForeignKey(</span></span><br><span class="line"><span class="meta">        entity = UserEntity::class,</span></span><br><span class="line"><span class="meta">        parentColumns = [<span class="meta-string">&quot;uid&quot;</span>],</span></span><br><span class="line"><span class="meta">        childColumns = [<span class="meta-string">&quot;owner&quot;</span>]</span></span><br><span class="line"><span class="meta">    )</span>]</span><br><span class="line">)</span><br><span class="line"><span class="keyword">data</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitEntity</span></span></span><br></pre></td></tr></table></figure>
+
+<p>还有最后一个<code>indices</code>用来提高查询的效率，你可能想为特定的字段建立索引。要为一个entity添加索引，在<code>@Entity</code>注解中添加<code>indices</code>属性，列出你想放在索引或者组合索引中的字段。就像这样:</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Entity(indices = [Index(<span class="meta-string">&quot;name&quot;</span>)</span>, Index(<span class="string">&quot;name&quot;</span>, <span class="string">&quot;owner&quot;</span>)])</span><br><span class="line"><span class="keyword">data</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitEntity</span></span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>@PrimaryKey</code></p>
+<p>用于注释属性，标识这是一个主键。除了在<code>@Entity</code>中指定外还可以使用这个注解标识主键。</p>
+</li>
+<li><p><code>@ForeignKey</code></p>
+<p>用于注释属性，标识外键</p>
+</li>
+<li><p><code>@ColumnInfo</code></p>
+<p>用于注释属性，这个注解我讲几个比较重要的属性。<code>name</code>和<code>typeAffinity</code>属性。<code>name</code>属性是修改当前属性值对应生成的数据库表单中生成的列名。如<code>FruitEntity</code>生成的数据库表单中列名是<code>fruitName</code>而不是<code>name</code>。</p>
+<p><code>typeAffinity</code>数据类型转换，比如FruitEntity类中typeAff的字段是String类型（从服务器获取的数据类型等）。但是我们需要存储在本地为<code>Double</code>类型。就可以使用该属性。</p>
+</li>
+<li><p><code>@Ignore</code></p>
+<p>用于注释属性，忽略该类的这个属性，数据表字段不生成对应的列。但是需要注意的是，如果你是用的是kotlin开发，被<code>@Ignore</code>注解的字段应当有默认值。不然他不知道该调用什么构造函数来实例化当前对象。既然有默认值了，就应该这样写：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Entity(tableName = <span class="meta-string">&quot;fruit&quot;</span>)</span></span><br><span class="line"><span class="keyword">data</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitEntity</span> <span class="meta">@JvmOverloads</span> <span class="keyword">constructor</span></span>(</span><br><span class="line">    <span class="comment">// 前面的字段省略。。。</span></span><br><span class="line">    <span class="comment">// @JvmOverloads应该都知道什么意思吧，不知道反编译一下就知道了。</span></span><br><span class="line">    <span class="comment">// 加上@JvmOverloads编译时会生成多个构造函数。因为java不支持默认值。</span></span><br><span class="line">    <span class="comment">// 还是不理解的话可以自己反编译看看。</span></span><br><span class="line">    <span class="meta">@Ignore</span></span><br><span class="line">    <span class="keyword">var</span> count: <span class="built_in">Int</span>? = <span class="literal">null</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>如果我不使用<code>@Ignore</code>属性就怎么写就都无所谓了。</p>
+</li>
+</ul>
+<h4 id="Dao"><a href="#Dao" class="headerlink" title="Dao"></a>Dao</h4><figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Dao</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitDao</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Delete</span></span><br><span class="line">    <span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">delete</span><span class="params">(f: <span class="type">FruitEntity</span>)</span></span></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Insert</span></span><br><span class="line">    <span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">insert</span><span class="params">(<span class="keyword">vararg</span> f: <span class="type">FruitEntity</span>)</span></span></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Query(<span class="meta-string">&quot;select * from fruit&quot;</span>)</span></span><br><span class="line">    <span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">queryAll</span><span class="params">()</span></span>: List&lt;FruitEntity&gt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Dao非常的灵活，你可以传入不同的参数。这里的入参和返回值可以根据实际的需要随便写。如果都不能满足你的要求，你还可以自己去写sql语句（自己写的sql语句都使用<code>@Query</code>注解）。</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Query(<span class="meta-string">&quot;update fruit set fruitName = &#x27;苹果&#x27; where fruitName = :name&quot;</span>)</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">update</span><span class="params">(name: <span class="type">String</span>)</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">@Query(<span class="meta-string">&quot;delete from fruit where fruitName = :name&quot;</span>)</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">delect</span><span class="params">(name: <span class="type">String</span>)</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">@Query(<span class="meta-string">&quot;update fruit set fruitName = &#x27;苹果&#x27; where fruitName in (:names)&quot;</span>)</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">update</span><span class="params">(<span class="keyword">vararg</span> names: <span class="type">String</span>)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>除了上面这些简单的用法，你还可以返回可观察对象。就像这样:</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Query(<span class="meta-string">&quot;select * from fruit&quot;</span>)</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">queryAll</span><span class="params">()</span></span>: LiveData&lt;List&lt;FruitEntity&gt;&gt;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Query(<span class="meta-string">&quot;select * from fruit&quot;</span>)</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">queryAll</span><span class="params">()</span></span>: Flowable&lt;List&lt;FruitEntity&gt;&gt;</span><br></pre></td></tr></table></figure>
+
+<h4 id="DataBase"><a href="#DataBase" class="headerlink" title="DataBase"></a>DataBase</h4><figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Database(entities = [FruitEntity::class], version = 1)</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitDatabase</span> : <span class="type">RoomDatabase</span></span>() &#123;</span><br><span class="line">    <span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">fruitDao</span><span class="params">()</span></span>: FruitDao</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　创建好这三个组件，Room的配置基本就已经完成了，通常我们需要的业务逻辑都加写在Dao中的抽象方法中。现在只需要build一次就可以让Room帮我们自动生成对应的实现代码。</p>
+<h4 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h4><p>　　现在在需要使用的地方调用如下代码：</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line"><span class="keyword">val</span> db = Room.databaseBuilder(applicationContext, FruitDatabase::<span class="keyword">class</span>.java, <span class="string">&quot;database.db&quot;</span>)</span><br><span class="line">	.allowMainThreadQueries()</span><br><span class="line">	.build()</span><br><span class="line">db.fruitDao().insert(FruitEntity())</span><br></pre></td></tr></table></figure>
+
+<p>现在你就可以简单的使用Room了。</p>
+<p>　　最后提一句就是Room的事务，第一种方式就是在dao类中使用<code>@Transaction</code>注释。第二种就是</p>
+<figure class="highlight kotlin"><table><tr><td class="code"><pre><span class="line">db.runInTransaction &#123;</span><br><span class="line">	db.fruitDao().update(<span class="string">&quot;苦瓜&quot;</span>, <span class="string">&quot;芒果&quot;</span>)</span><br><span class="line">	db.fruitDao().update(<span class="string">&quot;苹果&quot;</span>, <span class="string">&quot;香蕉&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+]]></content>
+      <categories>
+        <category>Android</category>
+      </categories>
+      <tags>
+        <tag>持久化</tag>
+        <tag>数据库</tag>
+      </tags>
+  </entry>
 </search>

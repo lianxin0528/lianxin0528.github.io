@@ -1,0 +1,224 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用Room数据持久化 | 恋心</title><meta name="keywords" content="持久化,数据库"><meta name="author" content="恋心,qingyizhuyin@qq.com"><meta name="copyright" content="恋心"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><meta name="description" content="在面对数据存储时，Android开发者有很多选择。最开始的SQLite,再后来使用的NoSQL的Realm和ObjectBox数据库。今天我们要讲的是JetPack的成员——Room数据库。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用Room数据持久化">
+<meta property="og:url" content="http://lianxin.space/2021/04/06/room/index.html">
+<meta property="og:site_name" content="恋心">
+<meta property="og:description" content="在面对数据存储时，Android开发者有很多选择。最开始的SQLite,再后来使用的NoSQL的Realm和ObjectBox数据库。今天我们要讲的是JetPack的成员——Room数据库。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/05/04/yUq8u6AOziwmcWd.jpg">
+<meta property="article:published_time" content="2021-04-06T06:19:03.000Z">
+<meta property="article:modified_time" content="2021-05-04T13:09:34.045Z">
+<meta property="article:author" content="恋心">
+<meta property="article:tag" content="持久化">
+<meta property="article:tag" content="数据库">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/05/04/yUq8u6AOziwmcWd.jpg"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://lianxin.space/2021/04/06/room/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  hexoversion: '5.1.1',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  ClickShowText: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false
+};
+
+var saveToLocal = {
+  set: function setWithExpiry(key, value, ttl) {
+    const now = new Date()
+    const expiryDay = ttl * 86400000
+    const item = {
+      value: value,
+      expiry: now.getTime() + expiryDay,
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+  },
+
+  get: function getWithExpiry(key) {
+    const itemStr = localStorage.getItem(key)
+
+    if (!itemStr) {
+      return undefined
+    }
+    const item = JSON.parse(itemStr)
+    const now = new Date()
+
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(key)
+      return undefined
+    }
+    return item.value
+  }
+}</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2021-05-04 21:09:34'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+  }
+}
+
+var autoChangeMode = 'false'
+var t = saveToLocal.get('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (saveToLocal.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><meta name="generator" content="Hexo 5.1.1"></head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">加载中...</div></div></div><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">文章</div><div class="length_num">5</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">标签</div><div class="length_num">8</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">分类</div><div class="length_num">3</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div id="body-wrap"><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%8B%E7%BB%8D"><span class="toc-number">1.</span> <span class="toc-text">介绍</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Room%E7%9A%84%E4%BD%BF%E7%94%A8"><span class="toc-number">2.</span> <span class="toc-text">Room的使用</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BE%9D%E8%B5%96"><span class="toc-number">2.1.</span> <span class="toc-text">依赖</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Entity-%E5%88%9B%E5%BB%BA%E8%A1%A8"><span class="toc-number">2.2.</span> <span class="toc-text">Entity(创建表)</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Dao"><span class="toc-number">2.3.</span> <span class="toc-text">Dao</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#DataBase"><span class="toc-number">2.4.</span> <span class="toc-text">DataBase</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8"><span class="toc-number">2.5.</span> <span class="toc-text">使用</span></a></li></ol></li></ol></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://i.loli.net/2021/05/04/yUq8u6AOziwmcWd.jpg)"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">恋心</a></span><span id="menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 主页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><span class="close" id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">使用Room数据持久化</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2021-04-06T06:19:03.000Z" title="发表于 2021-04-06 14:19:03">2021-04-06</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2021-05-04T13:09:34.045Z" title="更新于 2021-05-04 21:09:34">2021-05-04</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Android/">Android</a></span></div><div class="meta-secondline"> <span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">1.6k</span></span></div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p>　　SQLite代码写起来繁琐而且容易出错。始终不如ORM框架（ 对象-关系映射Object/Relation Mapping，简称ORM）来的舒服。在使用上Room数据库不如ObjectBox等NoSQL数据库使用更直观、更方便。但是ObjectBox的上手难度会更高一点。但是要是熟悉使用的话，ObjectBox我感觉会更好一点。感兴趣的也可以自行了解一哈。后续应该会出文章去讲解。</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://objectbox.io/features/">ObjectBox（速度快，全自动数据库升级，编译时检查）</a></p>
+</blockquote>
+<p>　　前面有点主次不分了，其实这些数据库在使用上还是有很多相似之处。下面正式介绍Room数据库：</p>
+<p>　　什么是Room数据库呢？这是Google推出的数据库框架，属于ORM框架。主要是对SQLite做了一层抽象。简化了开发者对数据库的操作，其实呢，就是减少了模板代码的编写。并且支持编译时检查，并且返回支持LiveData。构成Room的主要组件包括<code>Entity </code>( 数据实体，对应数据库中的表)、<code>Dao</code>(数据访问对象，包含访问数据库的方法)、<code>Database</code>(数据库持有者)。贴一张Room不同组件之间关系的官方图：</p>
+<img src= "/img/loading.gif" data-lazy-src="https://i.loli.net/2021/05/04/NH4j8SQqhyna1gw.png" alt="Room不同组件之间的关系" style="zoom:80%;" />
+
+<h3 id="Room的使用"><a href="#Room的使用" class="headerlink" title="Room的使用"></a>Room的使用</h3><h4 id="依赖"><a href="#依赖" class="headerlink" title="依赖"></a>依赖</h4><p>　　在模块的build.gradle中添加如下依赖</p>
+<figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">apply <span class="attr">plugin:</span> <span class="string">&#x27;kotlin-kapt&#x27;</span></span><br><span class="line">dependencies &#123;</span><br><span class="line">  <span class="keyword">def</span> room_version = <span class="string">&quot;2.2.6&quot;</span></span><br><span class="line"></span><br><span class="line">  implementation <span class="string">&quot;androidx.room:room-runtime:$room_version&quot;</span></span><br><span class="line">  kapt <span class="string">&quot;androidx.room:room-compiler:$room_version&quot;</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// optional - Kotlin Extensions and Coroutines support for Room</span></span><br><span class="line">  implementation <span class="string">&quot;androidx.room:room-ktx:$room_version&quot;</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">// optional - Test helpers</span></span><br><span class="line">  testImplementation <span class="string">&quot;androidx.room:room-testing:$room_version&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>添加完成，现在可以开始使用Room数据库了。</p>
+<h4 id="Entity-创建表"><a href="#Entity-创建表" class="headerlink" title="Entity(创建表)"></a>Entity(创建表)</h4><p>　　创建数据表的时候我们需要使用到<code>@Entity</code>注解。当一个类（这个类可以是普通类，也可以是data class，<strong>但是字段名一定不能用<code>val</code>修饰，一定不能</strong>）被当前注解标记时，会自动生成对应的数据库表单。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Entity(tableName = <span class="meta-string">&quot;fruit&quot;</span>)</span></span><br><span class="line"><span class="keyword">data</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitEntity</span></span>(</span><br><span class="line">    <span class="meta">@PrimaryKey(autoGenerate = false)</span></span><br><span class="line">    <span class="keyword">var</span> id: <span class="built_in">Int</span>,</span><br><span class="line">    <span class="meta">@ColumnInfo(name = <span class="meta-string">&quot;fruitName&quot;</span>, defaultValue = <span class="meta-string">&quot;未知名称&quot;</span>)</span></span><br><span class="line">    <span class="keyword">var</span> name: String,</span><br><span class="line">    <span class="keyword">var</span> owner: <span class="built_in">Int</span>,</span><br><span class="line">    <span class="keyword">var</span> weight: <span class="built_in">Double</span>,</span><br><span class="line">    <span class="meta">@ColumnInfo(typeAffinity = ColumnInfo.REAL)</span></span><br><span class="line">    <span class="keyword">var</span> typeAff: String,</span><br><span class="line">    <span class="meta">@Ignore</span> <span class="comment">// 这里这样的Ignore写法是错误的，后面会讲到。这里只是为了表示有这个字段。</span></span><br><span class="line">    <span class="keyword">var</span> count: <span class="built_in">Int</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>上面我们使用了<code>@Entity</code>来生成一个数据表，也使用很多相关的注解来辅助我们完善一张表。我们来一个一个的介绍使用到的注解。</p>
+<ul>
+<li><p><code>@Entity</code></p>
+<p>用于注释类，tableName指定将要创建的数据库表名称，不指定默认和类名一致。其中还有<code>primaryKeys</code>和<code>foreignKeys</code>等属性用来指定主外键集合。上面代码指定主键的方式还可以写成：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Entity(primaryKeys = [<span class="meta-string">&quot;id&quot;</span>])</span></span><br><span class="line"><span class="keyword">data</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitEntity</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这样我们就不需要使用<code>@PrimaryKey</code>来注解id。autoGenerate的默认值就是<code>false</code></p>
+<p>同样的外键也可以用如下形式：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Entity(</span></span><br><span class="line"><span class="meta">    foreignKeys = [ForeignKey(</span></span><br><span class="line"><span class="meta">        entity = UserEntity::class,</span></span><br><span class="line"><span class="meta">        parentColumns = [<span class="meta-string">&quot;uid&quot;</span>],</span></span><br><span class="line"><span class="meta">        childColumns = [<span class="meta-string">&quot;owner&quot;</span>]</span></span><br><span class="line"><span class="meta">    )</span>]</span><br><span class="line">)</span><br><span class="line"><span class="keyword">data</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitEntity</span></span></span><br></pre></td></tr></table></figure>
+
+<p>还有最后一个<code>indices</code>用来提高查询的效率，你可能想为特定的字段建立索引。要为一个entity添加索引，在<code>@Entity</code>注解中添加<code>indices</code>属性，列出你想放在索引或者组合索引中的字段。就像这样:</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Entity(indices = [Index(<span class="meta-string">&quot;name&quot;</span>)</span>, Index(<span class="string">&quot;name&quot;</span>, <span class="string">&quot;owner&quot;</span>)])</span><br><span class="line"><span class="keyword">data</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitEntity</span></span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><code>@PrimaryKey</code></p>
+<p>用于注释属性，标识这是一个主键。除了在<code>@Entity</code>中指定外还可以使用这个注解标识主键。</p>
+</li>
+<li><p><code>@ForeignKey</code></p>
+<p>用于注释属性，标识外键</p>
+</li>
+<li><p><code>@ColumnInfo</code></p>
+<p>用于注释属性，这个注解我讲几个比较重要的属性。<code>name</code>和<code>typeAffinity</code>属性。<code>name</code>属性是修改当前属性值对应生成的数据库表单中生成的列名。如<code>FruitEntity</code>生成的数据库表单中列名是<code>fruitName</code>而不是<code>name</code>。</p>
+<p><code>typeAffinity</code>数据类型转换，比如FruitEntity类中typeAff的字段是String类型（从服务器获取的数据类型等）。但是我们需要存储在本地为<code>Double</code>类型。就可以使用该属性。</p>
+</li>
+<li><p><code>@Ignore</code></p>
+<p>用于注释属性，忽略该类的这个属性，数据表字段不生成对应的列。但是需要注意的是，如果你是用的是kotlin开发，被<code>@Ignore</code>注解的字段应当有默认值。不然他不知道该调用什么构造函数来实例化当前对象。既然有默认值了，就应该这样写：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Entity(tableName = <span class="meta-string">&quot;fruit&quot;</span>)</span></span><br><span class="line"><span class="keyword">data</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitEntity</span> <span class="meta">@JvmOverloads</span> <span class="keyword">constructor</span></span>(</span><br><span class="line">    <span class="comment">// 前面的字段省略。。。</span></span><br><span class="line">    <span class="comment">// @JvmOverloads应该都知道什么意思吧，不知道反编译一下就知道了。</span></span><br><span class="line">    <span class="comment">// 加上@JvmOverloads编译时会生成多个构造函数。因为java不支持默认值。</span></span><br><span class="line">    <span class="comment">// 还是不理解的话可以自己反编译看看。</span></span><br><span class="line">    <span class="meta">@Ignore</span></span><br><span class="line">    <span class="keyword">var</span> count: <span class="built_in">Int</span>? = <span class="literal">null</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>如果我不使用<code>@Ignore</code>属性就怎么写就都无所谓了。</p>
+</li>
+</ul>
+<h4 id="Dao"><a href="#Dao" class="headerlink" title="Dao"></a>Dao</h4><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Dao</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitDao</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Delete</span></span><br><span class="line">    <span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">delete</span><span class="params">(f: <span class="type">FruitEntity</span>)</span></span></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Insert</span></span><br><span class="line">    <span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">insert</span><span class="params">(<span class="keyword">vararg</span> f: <span class="type">FruitEntity</span>)</span></span></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Query(<span class="meta-string">&quot;select * from fruit&quot;</span>)</span></span><br><span class="line">    <span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">queryAll</span><span class="params">()</span></span>: List&lt;FruitEntity&gt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Dao非常的灵活，你可以传入不同的参数。这里的入参和返回值可以根据实际的需要随便写。如果都不能满足你的要求，你还可以自己去写sql语句（自己写的sql语句都使用<code>@Query</code>注解）。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Query(<span class="meta-string">&quot;update fruit set fruitName = &#x27;苹果&#x27; where fruitName = :name&quot;</span>)</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">update</span><span class="params">(name: <span class="type">String</span>)</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">@Query(<span class="meta-string">&quot;delete from fruit where fruitName = :name&quot;</span>)</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">delect</span><span class="params">(name: <span class="type">String</span>)</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">@Query(<span class="meta-string">&quot;update fruit set fruitName = &#x27;苹果&#x27; where fruitName in (:names)&quot;</span>)</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">update</span><span class="params">(<span class="keyword">vararg</span> names: <span class="type">String</span>)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>除了上面这些简单的用法，你还可以返回可观察对象。就像这样:</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Query(<span class="meta-string">&quot;select * from fruit&quot;</span>)</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">queryAll</span><span class="params">()</span></span>: LiveData&lt;List&lt;FruitEntity&gt;&gt;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Query(<span class="meta-string">&quot;select * from fruit&quot;</span>)</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">queryAll</span><span class="params">()</span></span>: Flowable&lt;List&lt;FruitEntity&gt;&gt;</span><br></pre></td></tr></table></figure>
+
+<h4 id="DataBase"><a href="#DataBase" class="headerlink" title="DataBase"></a>DataBase</h4><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Database(entities = [FruitEntity::class], version = 1)</span></span><br><span class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitDatabase</span> : <span class="type">RoomDatabase</span></span>() &#123;</span><br><span class="line">    <span class="keyword">abstract</span> <span class="function"><span class="keyword">fun</span> <span class="title">fruitDao</span><span class="params">()</span></span>: FruitDao</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　创建好这三个组件，Room的配置基本就已经完成了，通常我们需要的业务逻辑都加写在Dao中的抽象方法中。现在只需要build一次就可以让Room帮我们自动生成对应的实现代码。</p>
+<h4 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h4><p>　　现在在需要使用的地方调用如下代码：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> db = Room.databaseBuilder(applicationContext, FruitDatabase::<span class="keyword">class</span>.java, <span class="string">&quot;database.db&quot;</span>)</span><br><span class="line">	.allowMainThreadQueries()</span><br><span class="line">	.build()</span><br><span class="line">db.fruitDao().insert(FruitEntity())</span><br></pre></td></tr></table></figure>
+
+<p>现在你就可以简单的使用Room了。</p>
+<p>　　最后提一句就是Room的事务，第一种方式就是在dao类中使用<code>@Transaction</code>注释。第二种就是</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">db.runInTransaction &#123;</span><br><span class="line">	db.fruitDao().update(<span class="string">&quot;苦瓜&quot;</span>, <span class="string">&quot;芒果&quot;</span>)</span><br><span class="line">	db.fruitDao().update(<span class="string">&quot;苹果&quot;</span>, <span class="string">&quot;香蕉&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+</div><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:qingyizhuyin@qq.com">恋心</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="http://lianxin.space/2021/04/06/room/">http://lianxin.space/2021/04/06/room/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://lianxin.space" target="_blank">恋心</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%8C%81%E4%B9%85%E5%8C%96/">持久化</a><a class="post-meta__tags" href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a></div><div class="post_share"><div class="social-share" data-image="https://i.loli.net/2021/05/04/yUq8u6AOziwmcWd.jpg" data-sites="wechat,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2021/03/14/Git/"><img class="next-cover" data-lazy-src="https://i.loli.net/2021/03/14/KYRgoXHVCGb9twN.jpg" onerror="onerror=null;src='/img/404.jpg'"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Git的使用和基本原理</div></div></a></div></nav></article></main><footer id="footer" style="background-image: url(https://i.loli.net/2021/05/04/yUq8u6AOziwmcWd.jpg)"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2021 By 恋心</div><div class="footer_custom_text">逆水行舟，不进则退</div></div></footer></div><section id="rightside"><div id="rightside-config-hide"><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div></div><hr/><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="noopener" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="/js/search/local-search.js"></script><script>var preloader = {
+  endLoading: () => {
+    document.body.style.overflow = 'auto';
+    document.getElementById('loading-box').classList.add("loaded")
+  },
+  initLoading: () => {
+    document.body.style.overflow = '';
+    document.getElementById('loading-box').classList.remove("loaded")
+
+  }
+}
+window.addEventListener('load',()=> {preloader.endLoading()})</script><div class="js-pjax"><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script defer="defer" id="fluttering_ribbon" mobile="false" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/canvas-fluttering-ribbon.min.js"></script><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/dist/click-heart.min.js" async="async" mobile="false"></script></div></body></html>
