@@ -482,7 +482,20 @@
 </li>
 <li><p><code>@ColumnInfo</code></p>
 <p>用于注释属性，这个注解我讲几个比较重要的属性。<code>name</code>和<code>typeAffinity</code>属性。<code>name</code>属性是修改当前属性值对应生成的数据库表单中生成的列名。如<code>FruitEntity</code>生成的数据库表单中列名是<code>fruitName</code>而不是<code>name</code>。</p>
-<p><code>typeAffinity</code>数据类型转换，比如FruitEntity类中typeAff的字段是String类型（从服务器获取的数据类型等）。但是我们需要存储在本地为<code>Double</code>类型。就可以使用该属性。</p>
+<p><code>typeAffinity</code>(类型相像)是需要重点说一下的。</p>
+<p>在下面描述的条件下，在查询执行阶段，数据库引擎可能会在数字存储类（INTEGER和REAL）和TEXT存储类之间转换。</p>
+<ol>
+<li><p>Boolean数据类型</p>
+<p>SQLite没有单独的Boolean存储类，相反，Booean值以整数0（false）和1（true）存储。</p>
+</li>
+<li><p>日期和时间数据类型</p>
+<p>SQLite没有为存储日期和/或时间设置专门的存储类，相反，内置的日期和时间函数能够把日期和时间作为TEXT，REAL或INTEGER值存储：</p>
+<p>TEXT：作为ISO8601字符串（”YYYY-MM-DD HH:MM:SS.SSS”）。</p>
+<p>REAL：作为Julian天数，……</p>
+<p>INTEGER：作为Unix Time，即自1970-01-01 00:00:00 UTC以下的秒数。</p>
+</li>
+</ol>
+<p>为了最大化SQLite和其他数据库引擎之间的兼容性，SQLite支持列的“类型相像”的概念。这里重要的思想是，<strong>类型是推荐的，不是必需的</strong>。任何列仍然能够存储任何类型的数据。只是某些列，能够选择优先使用某种存储类。这个对列的优先存储类称作它的“相像”。</p>
 </li>
 <li><p><code>@Ignore</code></p>
 <p>用于注释属性，忽略该类的这个属性，数据表字段不生成对应的列。但是需要注意的是，如果你是用的是kotlin开发，被<code>@Ignore</code>注解的字段应当有默认值。不然他不知道该调用什么构造函数来实例化当前对象。既然有默认值了，就应该这样写：</p>
